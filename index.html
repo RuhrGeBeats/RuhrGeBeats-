@@ -1599,6 +1599,7 @@ document.getElementById("inquiryForm").addEventListener("submit", async function
   const form = e.target;
   const message = document.getElementById("inquiryMessage");
 
+  message.style.color = "#64748b";
   message.textContent = "Anfrage wird gesendet …";
 
   const raw = getFormData(form);
@@ -1606,28 +1607,64 @@ document.getElementById("inquiryForm").addEventListener("submit", async function
   const existingTech = checkedValues(form, "existing_tech");
   const requiredTech = checkedValues(form, "required_tech");
 
+  const djMinutes = raw.dj_play_time
+    ? parseInt(String(raw.dj_play_time).replace(",", "."), 10)
+    : null;
+
   const inquiry = {
-    order_name: raw.order_name || null,
+    orderer_name: raw.order_name || null,
     contact_person: raw.contact_person || null,
     phone: raw.phone || null,
     email: raw.email || null,
-    street: raw.street || null,
-    house_number: raw.house_number || null,
-    postal_code: raw.postal_code || null,
-    city: raw.city || null,
+
+    orderer_street: raw.street || null,
+    orderer_house_number: raw.house_number || null,
+    orderer_postal_code: raw.postal_code || null,
+    orderer_city: raw.city || null,
+
     event_date: raw.event_date || null,
     event_location: raw.event_location || null,
-    guest_count: raw.guest_count ? Number(raw.guest_count) : null,
+    guest_count: raw.guest_count
+      ? Number(raw.guest_count)
+      : null,
+
     event_type: raw.event_type || null,
-    reinfeiern: raw.reinfeiern || null,
-    existing_tech: existingTech || null,
-    required_tech: requiredTech || null,
+
+    birthday_reinfeiern:
+      raw.reinfeiern === "Ja"
+        ? true
+        : raw.reinfeiern === "Nein"
+          ? false
+          : null,
+
+    existing_music: existingTech.includes("Musik"),
+    existing_lighting: existingTech.includes("Licht"),
+    existing_internet: existingTech.includes("Internet"),
+    existing_other: existingTech.includes("Sonstiges")
+      ? "Sonstiges"
+      : null,
+
+    required_music: requiredTech.includes("Musik"),
+    required_lighting: requiredTech.includes("Licht"),
+    required_fog: requiredTech.includes("Nebel"),
+    required_other: requiredTech.includes("Sonstiges")
+      ? "Sonstiges"
+      : null,
+
     earliest_setup_time: raw.earliest_setup_time || null,
     music_wishes: raw.music_wishes || null,
-    dj_play_time: raw.dj_play_time || null,
+
+    dj_play_time_minutes:
+      Number.isFinite(djMinutes)
+        ? djMinutes
+        : null,
+
     special_notes: raw.special_notes || null,
+
     status: "neu"
   };
+
+  console.log("Zu speichernde Anfrage:", inquiry);
 
   const { data, error } = await rbsupabase
     .from("inquiries")
@@ -1636,14 +1673,17 @@ document.getElementById("inquiryForm").addEventListener("submit", async function
     .single();
 
   if (error) {
-    console.error(error);
+    console.error("Fehler beim Speichern der Anfrage:", error);
 
     message.style.color = "#b91c1c";
     message.textContent =
-      "Die Anfrage konnte nicht gesendet werden. Bitte prüfe die Verbindung.";
+      "Die Anfrage konnte nicht gespeichert werden: " +
+      error.message;
 
     return;
   }
+
+  console.log("Anfrage erfolgreich gespeichert:", data);
 
   form.reset();
 
@@ -1656,8 +1696,6 @@ document.getElementById("inquiryForm").addEventListener("submit", async function
     message.textContent = "";
   }, 2500);
 });
-
-
 /* ============================================================
    LOGIN
 ============================================================ */
