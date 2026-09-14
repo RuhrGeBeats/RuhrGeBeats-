@@ -1,420 +1,3034 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RuhrGeBeats</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RuhrGeBeats – DJ für dein Event</title>
+  <meta name="description" content="RuhrGeBeats – professioneller mobiler DJ für Geburtstage, Hochzeiten und private Veranstaltungen im Ruhrgebiet und NRW.">
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f6;
-            color: #171717;
-        }
+  <style>
+    :root {
+      --primary: #111827;
+      --secondary: #374151;
+      --accent: #e11d48;
+      --accent-dark: #be123c;
+      --light: #f8fafc;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --white: #ffffff;
+      --shadow: 0 10px 30px rgba(15,23,42,.08);
+      --radius: 16px;
+    }
 
-        header {
-            background: #111111;
-            color: white;
-            padding: 22px;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        header h1 {
-            font-size: 26px;
-            letter-spacing: 1px;
-        }
+    html {
+      scroll-behavior: smooth;
+    }
 
-        header p {
-            margin-top: 5px;
-            color: #bbbbbb;
-        }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: #111827;
+      background: #f8fafc;
+    }
 
-        main {
-            max-width: 1100px;
-            margin: auto;
-            padding: 25px;
-        }
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
 
-        .welcome {
-            margin-bottom: 25px;
-        }
+    button {
+      cursor: pointer;
+    }
 
-        .welcome h2 {
-            font-size: 25px;
-            margin-bottom: 8px;
-        }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-        }
+    .hidden {
+      display: none !important;
+    }
 
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 22px;
-            min-height: 130px;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-            cursor: pointer;
-            transition: transform 0.15s;
-        }
+    /* PUBLIC WEBSITE */
 
-        .card:hover {
-            transform: translateY(-3px);
-        }
+    .public-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
 
-        .icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
+    .nav {
+      max-width: 1180px;
+      margin: auto;
+      padding: 15px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
 
-        .card h3 {
-            font-size: 18px;
-            margin-bottom: 6px;
-        }
+    .brand {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -.8px;
+    }
 
-        .card p {
-            color: #777;
-            font-size: 14px;
-        }
+    .brand span {
+      color: var(--accent);
+    }
 
-        .status {
-            margin-top: 30px;
-            background: white;
-            border-radius: 16px;
-            padding: 22px;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-        }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+    }
 
-        .status h3 {
-            margin-bottom: 15px;
-        }
+    .nav-links a {
+      color: #374151;
+      font-weight: 600;
+      font-size: 14px;
+    }
 
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
+    .nav-links a:hover {
+      color: var(--accent);
+    }
 
-        .status-row:last-child {
-            border-bottom: none;
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    .login-small {
+      padding: 8px 13px;
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      background: white;
+      font-weight: 600;
+      font-size: 13px;
+      color: #374151;
+    }
 
-<script>
-  const SUPABASE_URL = "https://wnvgnfdnexfzjgqelfko.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndudmduZmRuZXhmempncWVsZmtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzODAxNTgsImV4cCI6MjEwNDk1NjE1OH0.Ps7fg88-v4_7rNCoDay86H0Xa_r5THNeA9Bw7G2ZsM0";
+    .login-small:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
-  const rbsupabase = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
-</script>
+    .hero {
+      min-height: 650px;
+      display: flex;
+      align-items: center;
+      background:
+        linear-gradient(120deg, rgba(15,23,42,.97), rgba(15,23,42,.82)),
+        radial-gradient(circle at 80% 20%, #e11d48, transparent 30%);
+      color: white;
+    }
+
+    .hero-content {
+      max-width: 1180px;
+      width: 100%;
+      margin: auto;
+      padding: 90px 22px;
+    }
+
+    .hero-label {
+      display: inline-block;
+      padding: 7px 12px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 999px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      background: rgba(255,255,255,.07);
+    }
+
+    .hero h1 {
+      font-size: clamp(42px, 7vw, 76px);
+      line-height: .98;
+      max-width: 850px;
+      margin: 0 0 25px;
+      letter-spacing: -3px;
+    }
+
+    .hero h1 span {
+      color: #fb7185;
+    }
+
+    .hero p {
+      max-width: 650px;
+      font-size: 19px;
+      line-height: 1.6;
+      color: #d1d5db;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 18px;
+      font-weight: 700;
+      transition: .2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #111827;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: inherit;
+      border: 1px solid #d1d5db;
+    }
+
+    .section {
+      max-width: 1180px;
+      margin: auto;
+      padding: 85px 22px;
+    }
+
+    .section-title {
+      font-size: 38px;
+      margin: 0 0 12px;
+      letter-spacing: -1.2px;
+    }
+
+    .section-subtitle {
+      color: var(--muted);
+      max-width: 700px;
+      line-height: 1.6;
+      margin-bottom: 38px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .public-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .public-card .emoji {
+      font-size: 34px;
+      margin-bottom: 15px;
+    }
+
+    .public-card h3 {
+      margin: 0 0 10px;
+    }
+
+    .public-card p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .process {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .process-step {
+      padding: 24px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .number {
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #ffe4e6;
+      color: var(--accent);
+      font-weight: 900;
+      margin-bottom: 15px;
+    }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .news-card {
+      background: white;
+      padding: 24px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+    }
+
+    .news-date {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .cta {
+      background: #111827;
+      color: white;
+      border-radius: 22px;
+      padding: 55px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .cta h2 {
+      margin: 0 0 10px;
+      font-size: 34px;
+    }
+
+    .cta p {
+      color: #cbd5e1;
+    }
+
+    footer {
+      background: #0f172a;
+      color: #cbd5e1;
+      padding: 45px 22px;
+    }
+
+    .footer-inner {
+      max-width: 1180px;
+      margin: auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+
+    /* FORMS */
+
+    .form-container {
+      max-width: 950px;
+      margin: auto;
+      padding: 40px 22px 80px;
+    }
+
+    .form-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 35px;
+      box-shadow: var(--shadow);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      padding: 11px 12px;
+      background: white;
+      color: #111827;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(225,29,72,.08);
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+
+    .check input {
+      width: auto;
+    }
+
+    /* LOGIN */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,.62);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10000;
+    }
+
+    .modal {
+      width: min(520px, 100%);
+      background: white;
+      border-radius: 18px;
+      padding: 30px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.25);
+      max-height: 90vh;
+      overflow: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .close {
+      border: 0;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 7px 11px;
+    }
+
+    /* INTERNAL APP */
+
+    #internalApp {
+      min-height: 100vh;
+      background: #f1f5f9;
+    }
+
+    .internal-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 250px;
+      background: #111827;
+      color: white;
+      padding: 20px 12px;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      overflow-y: auto;
+      z-index: 500;
+    }
+
+    .sidebar-brand {
+      padding: 8px 12px 25px;
+      font-size: 21px;
+      font-weight: 900;
+    }
+
+    .sidebar-brand span {
+      color: #fb7185;
+    }
+
+    .side-section {
+      color: #94a3b8;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 800;
+      padding: 18px 12px 7px;
+      letter-spacing: .5px;
+    }
+
+    .side-button {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      color: #cbd5e1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin: 2px 0;
+      font-weight: 600;
+    }
+
+    .side-button:hover,
+    .side-button.active {
+      background: #1f2937;
+      color: white;
+    }
+
+    .side-button.finance {
+      color: #fda4af;
+    }
+
+    .main {
+      margin-left: 250px;
+      width: calc(100% - 250px);
+    }
+
+    .topbar {
+      height: 68px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .user-info {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .internal-content {
+      padding: 30px;
+      max-width: 1500px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    .page-header h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 17px;
+    }
+
+    .dash-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 3px 10px rgba(0,0,0,.03);
+      cursor: pointer;
+    }
+
+    .dash-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .dash-icon {
+      font-size: 25px;
+    }
+
+    .dash-card h3 {
+      margin: 14px 0 5px;
+      font-size: 16px;
+    }
+
+    .dash-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dashboard-section {
+      margin-top: 28px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+    }
+
+    .dashboard-section h2 {
+      margin-top: 0;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 700px;
+    }
+
+    th,
+    td {
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 800;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .status-success {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .small-btn {
+      border: 1px solid #d1d5db;
+      background: white;
+      padding: 6px 9px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .small-btn.primary {
+      background: #111827;
+      color: white;
+      border-color: #111827;
+    }
+
+    .small-btn.danger {
+      color: var(--danger);
+    }
+
+    .finance-warning {
+      padding: 14px;
+      border-radius: 10px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      margin-bottom: 20px;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+
+    .metric {
+      padding: 18px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric-value {
+      font-size: 27px;
+      font-weight: 900;
+      margin-top: 5px;
+    }
+
+    .empty {
+      padding: 35px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .loading {
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    /* CUSTOMER PORTAL */
+
+    #customerPortal {
+      min-height: 100vh;
+      background: #f8fafc;
+    }
+
+    .portal-header {
+      background: #111827;
+      color: white;
+      padding: 20px;
+    }
+
+    .portal-header-inner {
+      max-width: 1100px;
+      margin: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .portal-content {
+      max-width: 1100px;
+      margin: auto;
+      padding: 35px 20px;
+    }
+
+    .portal-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 18px;
+    }
+
+    .portal-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+    }
+
+    .portal-card h3 {
+      margin-top: 0;
+    }
+
+    /* RESPONSIVE */
+
+    @media(max-width: 900px) {
+      .cards,
+      .news-grid,
+      .process,
+      .dashboard-grid,
+      .metric-grid,
+      .portal-grid {
+        grid-template-columns: repeat(2,1fr);
+      }
+
+      .nav-links a:not(.login-small) {
+        display: none;
+      }
+
+      .sidebar {
+        width: 210px;
+      }
+
+      .main {
+        margin-left: 210px;
+        width: calc(100% - 210px);
+      }
+    }
+
+    @media(max-width: 650px) {
+      .cards,
+      .news-grid,
+      .process,
+      .dashboard-grid,
+      .metric-grid,
+      .portal-grid,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        width: 100%;
+        min-height: auto;
+      }
+
+      .internal-layout {
+        display: block;
+      }
+
+      .main {
+        margin-left: 0;
+        width: 100%;
+      }
+
+      .internal-content {
+        padding: 18px;
+      }
+
+      .topbar {
+        position: static;
+      }
+
+      .hero {
+        min-height: 570px;
+      }
+
+      .cta {
+        padding: 30px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .form-card {
+        padding: 22px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<header>
-    <h1>RUHRGEBEATS</h1>
-    <p>DJ Business Center</p>
-</header>
+<!-- ========================================================= -->
+<!-- PUBLIC WEBSITE                                             -->
+<!-- ========================================================= -->
 
-<main>
+<div id="publicSite">
 
-    <section class="welcome">
-        <h2>Willkommen 👋</h2>
-        <p>Hier verwaltet ihr eure komplette RuhrGeBeats-GbR.</p>
-    </section>
+  <header class="public-header">
+    <nav class="nav">
+      <a href="#" class="brand">Ruhr<span>Ge</span>Beats</a>
 
-    <section class="grid">
+      <div class="nav-links">
+        <a href="#leistungen">Leistungen</a>
+        <a href="#ablauf">Ablauf</a>
+        <a href="#news">News</a>
+        <a href="#kontakt">Kontakt</a>
+        <button class="login-small" onclick="openLogin()">Login</button>
+      </div>
+    </nav>
+  </header>
 
-        <div class="card">
-            <div class="icon">👥</div>
-            <h3>Kunden</h3>
-            <p>Kunden und Kontakte verwalten</p>
-        </div><div class="card">
-  <div class="icon">📩</div>
-  <h3 onclick="showInquiries()" style="cursor:pointer;">Anfragen</h3>
-  <p><span id="inquiryCount">0</span> offene Anfragen</p>
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-label">🎧 Mobiler DJ aus dem Ruhrgebiet</div>
+
+      <h1>
+        Deine Party.<br>
+        <span>Dein Sound.</span>
+      </h1>
+
+      <p>
+        RuhrGeBeats bringt Musik, Licht und Stimmung zu deiner Veranstaltung.
+        Professioneller mobiler DJ für Geburtstage, Hochzeiten und private Events
+        in NRW.
+      </p>
+
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="showInquiryForm()">
+          Jetzt Anfrage stellen
+        </button>
+
+        <a class="btn btn-secondary" href="#leistungen">
+          Mehr erfahren
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="leistungen">
+    <h2 class="section-title">Was wir mitbringen</h2>
+    <p class="section-subtitle">
+      Wir kümmern uns nicht nur um die Musik. Von der Planung bis zum letzten
+      Song soll deine Veranstaltung möglichst unkompliziert für dich laufen.
+    </p>
+
+    <div class="cards">
+      <div class="public-card">
+        <div class="emoji">🎧</div>
+        <h3>DJ & Musik</h3>
+        <p>
+          Von Charts über Klassiker bis zu deinen persönlichen Lieblingssongs.
+          Du entscheidest, welche Richtung deine Party nehmen soll.
+        </p>
+      </div>
+
+      <div class="public-card">
+        <div class="emoji">💡</div>
+        <h3>Lichttechnik</h3>
+        <p>
+          Bewegtes Licht und passende Effekte sorgen dafür, dass aus einem Raum
+          eine richtige Party-Location wird.
+        </p>
+      </div>
+
+      <div class="public-card">
+        <div class="emoji">🎤</div>
+        <h3>Moderation</h3>
+        <p>
+          Auf Wunsch übernehmen wir Ansagen und begleiten den Ablauf deiner
+          Veranstaltung professionell.
+        </p>
+      </div>
+
+      <div class="public-card">
+        <div class="emoji">📋</div>
+        <h3>Planung</h3>
+        <p>
+          Ablauf, Musikrichtung, Aufbau und Technik werden vor der Veranstaltung
+          gemeinsam abgestimmt.
+        </p>
+      </div>
+
+      <div class="public-card">
+        <div class="emoji">📱</div>
+        <h3>Musikwünsche</h3>
+        <p>
+          Deine Gäste können während der Feier über einen QR-Code Musikwünsche
+          einreichen.
+        </p>
+      </div>
+
+      <div class="public-card">
+        <div class="emoji">📍</div>
+        <h3>NRW & Ruhrgebiet</h3>
+        <p>
+          Wir sind als mobiler DJ flexibel unterwegs und bringen unsere Technik
+          direkt zu deiner Location.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="ablauf">
+    <h2 class="section-title">So läuft es ab</h2>
+    <p class="section-subtitle">
+      Von der ersten Anfrage bis zum letzten Song behalten wir den Überblick.
+    </p>
+
+    <div class="process">
+      <div class="process-step">
+        <div class="number">1</div>
+        <h3>Anfrage</h3>
+        <p>Du erzählst uns, was du planst und was du dir vorstellst.</p>
+      </div>
+
+      <div class="process-step">
+        <div class="number">2</div>
+        <h3>Angebot</h3>
+        <p>Wir prüfen die Veranstaltung und erstellen dein persönliches Angebot.</p>
+      </div>
+
+      <div class="process-step">
+        <div class="number">3</div>
+        <h3>Planung</h3>
+        <p>Nach der Buchung stimmen wir Musik, Technik und Ablauf ab.</p>
+      </div>
+
+      <div class="process-step">
+        <div class="number">4</div>
+        <h3>Party</h3>
+        <p>Wir bauen auf, legen los und sorgen für den passenden Sound.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="news">
+    <h2 class="section-title">News</h2>
+    <p class="section-subtitle">
+      Neuigkeiten von RuhrGeBeats.
+    </p>
+
+    <div id="publicNews" class="news-grid">
+      <div class="news-card">
+        <div class="news-date">RuhrGeBeats</div>
+        <h3>Willkommen bei RuhrGeBeats</h3>
+        <p>
+          Unsere neue Website und unser digitales Veranstaltungssystem sind im
+          Aufbau.
+        </p>
+      </div>
+
+      <div class="news-card">
+        <div class="news-date">Neu</div>
+        <h3>Digitale Musikwünsche</h3>
+        <p>
+          Bei Veranstaltungen können Gäste zukünftig direkt per QR-Code
+          Musikwünsche senden.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="kontakt">
+    <div class="cta">
+      <div>
+        <h2>Bereit für deine Party?</h2>
+        <p>
+          Erzähl uns kurz von deiner Veranstaltung. Wir melden uns anschließend
+          bei dir.
+        </p>
+      </div>
+
+      <button class="btn btn-primary" onclick="showInquiryForm()">
+        Anfrage stellen
+      </button>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <strong>RuhrGeBeats GbR</strong>
+        <p>Mobiler DJ im Ruhrgebiet & NRW</p>
+      </div>
+
+      <div>
+        <strong>Kontakt</strong>
+        <p>ruhrgebeats@gmail.com</p>
+      </div>
+
+      <div>
+        <strong>Rechtliches</strong>
+        <p>Impressum · Datenschutz · AGB</p>
+      </div>
+    </div>
+  </footer>
+
 </div>
 
-        <div class="card">
-            <div class="icon">📋</div>
-            <h3>Aufträge</h3>
-            <p>Anfragen und Veranstaltungen</p>
+
+<!-- ========================================================= -->
+<!-- CUSTOMER PORTAL                                             -->
+<!-- ========================================================= -->
+
+<div id="customerPortal" class="hidden">
+
+  <header class="portal-header">
+    <div class="portal-header-inner">
+      <div>
+        <strong>RuhrGeBeats</strong>
+        <div style="font-size:12px;color:#cbd5e1;">Kundenportal</div>
+      </div>
+
+      <button class="btn btn-outline" onclick="logout()">
+        Abmelden
+      </button>
+    </div>
+  </header>
+
+  <main class="portal-content">
+    <div class="page-header">
+      <div>
+        <h1>Willkommen!</h1>
+        <p style="color:#64748b;">
+          Hier findest du alle Informationen zu deiner Veranstaltung.
+        </p>
+      </div>
+    </div>
+
+    <div id="customerPortalContent">
+      <div class="loading">Lade deine Daten …</div>
+    </div>
+  </main>
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- INTERNAL APP                                                -->
+<!-- ========================================================= -->
+
+<div id="internalApp" class="hidden">
+
+  <div class="internal-layout">
+
+    <aside class="sidebar">
+
+      <div class="sidebar-brand">
+        Ruhr<span>Ge</span>Beats
+      </div>
+
+      <button class="side-button active" onclick="openInternalPage('dashboard')">
+        🏠 Dashboard
+      </button>
+
+      <div class="side-section">Kunden & Aufträge</div>
+
+      <button class="side-button" onclick="openInternalPage('inquiries')">
+        📥 Anfragen
+      </button>
+
+      <button class="side-button" onclick="openInternalPage('orders')">
+        📋 Aufträge
+      </button>
+
+      <button class="side-button" onclick="openInternalPage('customers')">
+        👥 Kunden
+      </button>
+
+      <button class="side-button" onclick="openInternalPage('calendar')">
+        📅 Kalender
+      </button>
+
+      <div class="side-section">Veranstaltungen</div>
+
+      <button class="side-button" onclick="openInternalPage('equipment')">
+        💡 Equipment
+      </button>
+
+      <button class="side-button" onclick="openInternalPage('music')">
+        🎵 Musikwünsche
+      </button>
+
+      <button class="side-button" onclick="openInternalPage('tasks')">
+        ✅ Aufgaben
+      </button>
+
+      <button class="side-button" onclick="openInternalPage('documents')">
+        📁 Dokumente
+      </button>
+
+      <div class="side-section">Vertrieb</div>
+
+      <button class="side-button" onclick="openInternalPage('offers')">
+        📝 Angebote
+      </button>
+
+      <button class="side-button" onclick="openInternalPage('invoices')">
+        🧾 Rechnungen
+      </button>
+
+      <div class="side-section">Unternehmen</div>
+
+      <button class="side-button" onclick="openInternalPage('website')">
+        🌐 Website / News
+      </button>
+
+      <button class="side-button" onclick="openInternalPage('settings')">
+        ⚙️ Einstellungen
+      </button>
+
+      <button class="side-button finance" onclick="openInternalPage('finance')">
+        🔒 Finanzen & Verwaltung
+      </button>
+
+      <div style="margin-top:25px;border-top:1px solid #374151;padding-top:15px;">
+        <button class="side-button" onclick="logout()">
+          🚪 Abmelden
+        </button>
+      </div>
+
+    </aside>
+
+
+    <main class="main">
+
+      <div class="topbar">
+        <div>
+          <strong id="internalPageTitle">Dashboard</strong>
         </div>
 
-        <div class="card">
-            <div class="icon">📅</div>
-            <h3>Kalender</h3>
-            <p>Termine und Veranstaltungen</p>
+        <div class="user-info">
+          <span id="internalUserName">Mitarbeiter</span>
         </div>
+      </div>
 
-        <div class="card">
-            <div class="icon">💰</div>
-            <h3>Finanzen</h3>
-            <p>Einnahmen und Ausgaben</p>
-        </div>
+      <div class="internal-content" id="internalContent"></div>
 
-        <div class="card">
-            <div class="icon">🧾</div>
-            <h3>Rechnungen</h3>
-            <p>Angebote und Rechnungen</p>
-        </div>
+    </main>
 
-        <div class="card">
-            <div class="icon">🎧</div>
-            <h3>Equipment</h3>
-            <p>DJ- und Lichttechnik</p>
-        </div>
+  </div>
 
-        <div class="card">
-            <div class="icon">📊</div>
-            <h3>Auswertungen</h3>
-            <p>Umsatz, Gewinn und Statistiken</p>
-        </div>
+</div>
 
-        <div class="card">
-            <div class="icon">⚙️</div>
-            <h3>Einstellungen</h3>
-            <p>Firma und Benutzer</p>
-        </div>
 
-    </section>
+<!-- ========================================================= -->
+<!-- LOGIN MODAL                                                 -->
+<!-- ========================================================= -->
 
-    <section class="status">
-        <h3>Aktueller Überblick</h3>
+<div id="loginModal" class="modal-overlay hidden">
 
-        <div class="status-row">
-            <span>Offene Kundenanfragen</span>
-            <strong>0</strong>
-        </div>
+  <div class="modal">
 
-        <div class="status-row">
-            <span>Anstehende Aufträge</span>
-            <strong>0</strong>
-        </div>
+    <div class="modal-header">
+      <div>
+        <h2 style="margin:0;">Login</h2>
+        <p style="margin:5px 0 0;color:#64748b;font-size:13px;">
+          Kunden- und Mitarbeiterzugang
+        </p>
+      </div>
 
-        <div class="status-row">
-            <span>Offene Rechnungen</span>
-            <strong>0 €</strong>
-        </div>
+      <button class="close" onclick="closeLogin()">✕</button>
+    </div>
 
-    </section>
+    <form id="loginForm">
 
-</main>
+      <div class="form-group" style="margin-bottom:15px;">
+        <label>E-Mail</label>
+        <input id="loginEmail" type="email" required>
+      </div>
 
-<!-- LOGIN -->
-<div id="loginScreen" style="
-  position:fixed;
-  inset:0;
-  background:#f5f7fa;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-">
-  <div style="
-    width:100%;
-    max-width:420px;
-    margin:20px;
-    background:white;
-    padding:40px;
-    border-radius:16px;
-    box-shadow:0 10px 40px rgba(0,0,0,0.08);
-  ">
-    <h1 style="margin-top:0;">RuhrGeBeats</h1>
-    <p style="color:#666;">DJ Business Center</p>
+      <div class="form-group" style="margin-bottom:20px;">
+        <label>Passwort</label>
+        <input id="loginPassword" type="password" required>
+      </div>
 
-    <label>E-Mail</label>
-    <input
-      id="loginEmail"
-      type="email"
-      placeholder="E-Mail-Adresse"
-      style="
-        width:100%;
-        box-sizing:border-box;
-        padding:12px;
-        margin:8px 0 18px;
-        border:1px solid #ddd;
-        border-radius:8px;
-      "
-    >
+      <button class="btn btn-primary" style="width:100%;" type="submit">
+        Anmelden
+      </button>
 
-    <label>Passwort</label>
-    <input
-      id="loginPassword"
-      type="password"
-      placeholder="Passwort"
-      style="
-        width:100%;
-        box-sizing:border-box;
-        padding:12px;
-        margin:8px 0 18px;
-        border:1px solid #ddd;
-        border-radius:8px;
-      "
-    >
+      <div id="loginMessage"
+           style="margin-top:15px;text-align:center;font-size:13px;"></div>
 
-    <button
-      id="loginButton"
-      style="
-        width:100%;
-        padding:13px;
-        border:0;
-        border-radius:8px;
-        background:#111827;
-        color:white;
-        font-size:16px;
-        cursor:pointer;
-      "
-    >
-      Anmelden
-    </button>
+    </form>
 
-    <p id="loginMessage" style="
-      margin-top:15px;
-      color:#c00;
-    "></p>
   </div>
 </div>
 
+
+<!-- ========================================================= -->
+<!-- INQUIRY FORM MODAL                                          -->
+<!-- ========================================================= -->
+
+<div id="inquiryModal" class="modal-overlay hidden">
+
+  <div class="modal" style="width:min(950px,100%);">
+
+    <div class="modal-header">
+      <div>
+        <h2 style="margin:0;">Veranstaltungsanfrage</h2>
+        <p style="margin:5px 0 0;color:#64748b;">
+          Je genauer deine Angaben sind, desto besser können wir deine Anfrage
+          bearbeiten.
+        </p>
+      </div>
+
+      <button class="close" onclick="closeInquiryForm()">✕</button>
+    </div>
+
+    <form id="inquiryForm">
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Name Auftragsteller *</label>
+          <input name="order_name" required>
+        </div>
+
+        <div class="form-group">
+          <label>Ansprechpartner</label>
+          <input name="contact_person">
+        </div>
+
+        <div class="form-group">
+          <label>Telefon *</label>
+          <input name="phone" required>
+        </div>
+
+        <div class="form-group">
+          <label>E-Mail *</label>
+          <input name="email" type="email" required>
+        </div>
+
+        <div class="form-group">
+          <label>Straße</label>
+          <input name="street">
+        </div>
+
+        <div class="form-group">
+          <label>Hausnummer</label>
+          <input name="house_number">
+        </div>
+
+        <div class="form-group">
+          <label>PLZ</label>
+          <input name="postal_code">
+        </div>
+
+        <div class="form-group">
+          <label>Ort</label>
+          <input name="city">
+        </div>
+
+        <div class="form-group">
+          <label>Veranstaltungsdatum *</label>
+          <input name="event_date" type="date" required>
+        </div>
+
+        <div class="form-group">
+          <label>Veranstaltungsort</label>
+          <input name="event_location">
+        </div>
+
+        <div class="form-group">
+          <label>Anzahl Gäste</label>
+          <input name="guest_count" type="number" min="1">
+        </div>
+
+        <div class="form-group">
+          <label>Veranstaltungsart</label>
+          <select name="event_type">
+            <option value="">Bitte wählen</option>
+            <option>Geburtstag</option>
+            <option>Hochzeit</option>
+            <option>Jubiläum</option>
+            <option>Firmenfeier</option>
+            <option>Private Feier</option>
+            <option>Sonstiges</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Reinfeiern?</label>
+          <select name="reinfeiern">
+            <option value="">Keine Angabe</option>
+            <option value="Ja">Ja</option>
+            <option value="Nein">Nein</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Früheste Aufbauzeit</label>
+          <input name="earliest_setup_time" type="time">
+        </div>
+
+        <div class="form-group">
+          <label>Ungefährer DJ-Spielzeitraum</label>
+          <input name="dj_play_time">
+        </div>
+
+        <div class="form-group full">
+          <label>Vorhandene Technik vor Ort</label>
+
+          <div class="check-grid">
+            <label class="check">
+              <input type="checkbox" name="existing_tech" value="Musik">
+              Musik
+            </label>
+
+            <label class="check">
+              <input type="checkbox" name="existing_tech" value="Licht">
+              Licht
+            </label>
+
+            <label class="check">
+              <input type="checkbox" name="existing_tech" value="Internet">
+              Internet
+            </label>
+
+            <label class="check">
+              <input type="checkbox" name="existing_tech" value="Sonstiges">
+              Sonstiges
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label>Benötigte Technik von RuhrGeBeats</label>
+
+          <div class="check-grid">
+            <label class="check">
+              <input type="checkbox" name="required_tech" value="Musik">
+              Musik
+            </label>
+
+            <label class="check">
+              <input type="checkbox" name="required_tech" value="Licht">
+              Licht
+            </label>
+
+            <label class="check">
+              <input type="checkbox" name="required_tech" value="Nebel">
+              Nebel
+            </label>
+
+            <label class="check">
+              <input type="checkbox" name="required_tech" value="Sonstiges">
+              Sonstiges
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label>Allgemeine Musikwünsche / Genres</label>
+          <textarea name="music_wishes"
+                    placeholder="z. B. 2000er, Charts, Rock, House, Schlager …"></textarea>
+        </div>
+
+        <div class="form-group full">
+          <label>Besondere Hinweise</label>
+          <textarea name="special_notes"
+                    placeholder="Dresscode, Ablauf, Überraschungen, Besonderheiten der Location usw."></textarea>
+        </div>
+
+      </div>
+
+      <div style="margin-top:25px;display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" class="btn" onclick="closeInquiryForm()">
+          Abbrechen
+        </button>
+
+        <button type="submit" class="btn btn-primary">
+          Anfrage senden
+        </button>
+      </div>
+
+      <div id="inquiryMessage"
+           style="margin-top:15px;text-align:center;"></div>
+
+    </form>
+
+  </div>
+</div>
+
+
 <script>
-  const loginScreen = document.getElementById("loginScreen");
-  const loginButton = document.getElementById("loginButton");
-  const loginMessage = document.getElementById("loginMessage");
+/* ============================================================
+   SUPABASE
+   ============================================================
 
-  async function checkLogin() {
-    const { data } = await rbsupabase.auth.getSession();
+   WICHTIG:
+   Hier deine bereits vorhandene SUPABASE URL und deinen
+   Publishable/Anon-Key einsetzen.
 
-    if (data.session) {
-      loginScreen.style.display = "none";
-    } else {
-      loginScreen.style.display = "flex";
-    }
+   NIEMALS den Service-Role-/Secret-Key verwenden.
+============================================================ */
+
+const SUPABASE_URL = "https://wnvgnfdnexfzjgqelfko.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_oIW_qHboJ7WMZwJDIEs9kg_kNs_enl3";
+
+const rbsupabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+
+/* ============================================================
+   HILFSFUNKTIONEN
+============================================================ */
+
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+
+  try {
+    return new Date(value).toLocaleDateString("de-DE");
+  } catch {
+    return value;
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  try {
+    return new Date(value).toLocaleString("de-DE");
+  } catch {
+    return value;
+  }
+}
+
+function formatMoney(value) {
+  const number = Number(value || 0);
+
+  return number.toLocaleString("de-DE", {
+    style: "currency",
+    currency: "EUR"
+  });
+}
+
+function getStatusClass(status) {
+  const s = String(status || "").toLowerCase();
+
+  if (
+    s.includes("bezahlt") ||
+    s.includes("abgeschlossen") ||
+    s.includes("gebucht")
+  ) {
+    return "status-success";
   }
 
-  loginButton.addEventListener("click", async () => {
-    const email = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
+  if (
+    s.includes("fällig") ||
+    s.includes("planung") ||
+    s.includes("angebot")
+  ) {
+    return "status-warning";
+  }
 
-    loginMessage.textContent = "";
+  if (
+    s.includes("überfällig") ||
+    s.includes("defekt")
+  ) {
+    return "status-danger";
+  }
 
-    const { error } = await rbsupabase.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
+  return "status-info";
+}
 
-    if (error) {
-      loginMessage.textContent = "Anmeldung fehlgeschlagen: " + error.message;
-      return;
+function statusBadge(status) {
+  return `<span class="status ${getStatusClass(status)}">
+    ${escapeHtml(status || "Unbekannt")}
+  </span>`;
+}
+
+function getFormData(form) {
+  const data = {};
+
+  new FormData(form).forEach((value, key) => {
+    if (data[key]) {
+      if (!Array.isArray(data[key])) data[key] = [data[key]];
+      data[key].push(value);
+    } else {
+      data[key] = value;
     }
-
-    loginScreen.style.display = "none";
   });
-async function showInquiries() {
+
+  return data;
+}
+
+function checkedValues(form, name) {
+  return [...form.querySelectorAll(`input[name="${name}"]:checked`)]
+    .map(x => x.value)
+    .join(", ");
+}
+
+
+/* ============================================================
+   PUBLIC WEBSITE
+============================================================ */
+
+function showInquiryForm() {
+  document.getElementById("inquiryModal").classList.remove("hidden");
+}
+
+function closeInquiryForm() {
+  document.getElementById("inquiryModal").classList.add("hidden");
+}
+
+function openLogin() {
+  document.getElementById("loginModal").classList.remove("hidden");
+}
+
+function closeLogin() {
+  document.getElementById("loginModal").classList.add("hidden");
+}
+
+
+/* ============================================================
+   INQUIRY SUBMIT
+============================================================ */
+
+document.getElementById("inquiryForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const message = document.getElementById("inquiryMessage");
+
+  message.textContent = "Anfrage wird gesendet …";
+
+  const raw = getFormData(form);
+
+  const existingTech = checkedValues(form, "existing_tech");
+  const requiredTech = checkedValues(form, "required_tech");
+
+  const inquiry = {
+    order_name: raw.order_name || null,
+    contact_person: raw.contact_person || null,
+    phone: raw.phone || null,
+    email: raw.email || null,
+    street: raw.street || null,
+    house_number: raw.house_number || null,
+    postal_code: raw.postal_code || null,
+    city: raw.city || null,
+    event_date: raw.event_date || null,
+    event_location: raw.event_location || null,
+    guest_count: raw.guest_count ? Number(raw.guest_count) : null,
+    event_type: raw.event_type || null,
+    reinfeiern: raw.reinfeiern || null,
+    existing_tech: existingTech || null,
+    required_tech: requiredTech || null,
+    earliest_setup_time: raw.earliest_setup_time || null,
+    music_wishes: raw.music_wishes || null,
+    dj_play_time: raw.dj_play_time || null,
+    special_notes: raw.special_notes || null,
+    status: "neu"
+  };
+
   const { data, error } = await rbsupabase
     .from("inquiries")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .insert(inquiry)
+    .select()
+    .single();
 
   if (error) {
-    alert("Fehler beim Laden der Anfragen: " + error.message);
+    console.error(error);
+
+    message.style.color = "#b91c1c";
+    message.textContent =
+      "Die Anfrage konnte nicht gesendet werden. Bitte prüfe die Verbindung.";
+
     return;
   }
 
-  let html = `
-    <div id="inquiriesModal" style="
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.45);
-      z-index:10000;
-      overflow:auto;
-      padding:40px 20px;
-    ">
-      <div style="
-        max-width:900px;
-        margin:auto;
-        background:white;
-        border-radius:16px;
-        padding:30px;
-      ">
-        <div style="
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          margin-bottom:25px;
-        ">
-          <h2 style="margin:0;">Kundenanfragen</h2>
-          <button onclick="document.getElementById('inquiriesModal').remove()" style="
-            border:0;
-            background:#eee;
-            border-radius:8px;
-            padding:8px 12px;
-            cursor:pointer;
-            font-size:18px;
-          ">✕</button>
-        </div>
-  `;
+  form.reset();
 
-  if (!data || data.length === 0) {
-    html += `
-      <p style="color:#666;">
-        Es sind aktuell keine Kundenanfragen vorhanden.
-      </p>
-    `;
-  } else {
-    data.forEach((inquiry, index) => {
-      html += `
-        <div style="
-          border:1px solid #e5e7eb;
-          border-radius:12px;
-          padding:20px;
-          margin-bottom:15px;
-        ">
-          <h3>Anfrage ${index + 1}</h3>
-          <pre style="
-            white-space:pre-wrap;
-            font-family:inherit;
-            color:#444;
-          ">${JSON.stringify(inquiry, null, 2)}</pre>
-        </div>
-      `;
-    });
+  message.style.color = "#15803d";
+  message.textContent =
+    "Vielen Dank! Deine Anfrage wurde erfolgreich übermittelt.";
+
+  setTimeout(() => {
+    closeInquiryForm();
+    message.textContent = "";
+  }, 2500);
+});
+
+
+/* ============================================================
+   LOGIN
+============================================================ */
+
+document.getElementById("loginForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const message = document.getElementById("loginMessage");
+
+  message.textContent = "Anmeldung läuft …";
+  message.style.color = "#64748b";
+
+  const { data, error } = await rbsupabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    console.error(error);
+    message.textContent = "Anmeldung fehlgeschlagen.";
+    message.style.color = "#b91c1c";
+    return;
   }
 
-  html += `
+  message.textContent = "Erfolgreich angemeldet.";
+  message.style.color = "#15803d";
+
+  await routeLoggedInUser();
+});
+
+
+async function routeLoggedInUser() {
+  const {
+    data: { user }
+  } = await rbsupabase.auth.getUser();
+
+  if (!user) {
+    showPublicSite();
+    return;
+  }
+
+  const { data: profile, error } = await rbsupabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(error);
+    alert("Das Benutzerprofil konnte nicht geladen werden.");
+    return;
+  }
+
+  closeLogin();
+
+  if (profile && profile.role === "internal") {
+    await showInternalApp(user, profile);
+  } else {
+    await showCustomerPortal(user, profile);
+  }
+}
+
+
+/* ============================================================
+   LOGOUT
+============================================================ */
+
+async function logout() {
+  await rbsupabase.auth.signOut();
+
+  document.getElementById("internalApp").classList.add("hidden");
+  document.getElementById("customerPortal").classList.add("hidden");
+  document.getElementById("publicSite").classList.remove("hidden");
+
+  window.scrollTo(0, 0);
+}
+
+
+/* ============================================================
+   INITIAL SESSION
+============================================================ */
+
+async function initApp() {
+  const {
+    data: { session }
+  } = await rbsupabase.auth.getSession();
+
+  if (session) {
+    await routeLoggedInUser();
+  }
+}
+
+initApp();
+
+
+/* ============================================================
+   INTERNAL APP
+============================================================ */
+
+async function showInternalApp(user, profile) {
+
+  document.getElementById("publicSite").classList.add("hidden");
+  document.getElementById("customerPortal").classList.add("hidden");
+  document.getElementById("internalApp").classList.remove("hidden");
+
+  document.getElementById("internalUserName").textContent =
+    user.email || "Mitarbeiter";
+
+  await openInternalPage("dashboard");
+}
+
+
+async function openInternalPage(page) {
+
+  document.querySelectorAll(".side-button").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  const titles = {
+    dashboard: "Dashboard",
+    inquiries: "Anfragen",
+    orders: "Aufträge",
+    customers: "Kunden",
+    calendar: "Kalender",
+    equipment: "Equipment",
+    music: "Musikwünsche",
+    tasks: "Aufgaben",
+    documents: "Dokumente",
+    offers: "Angebote",
+    invoices: "Rechnungen",
+    website: "Website / News",
+    settings: "Einstellungen",
+    finance: "Finanzen & Verwaltung"
+  };
+
+  document.getElementById("internalPageTitle").textContent =
+    titles[page] || "RuhrGeBeats";
+
+  const content = document.getElementById("internalContent");
+
+  content.innerHTML = `<div class="loading">Lade ${escapeHtml(titles[page] || "Bereich")} …</div>`;
+
+  switch(page) {
+
+    case "dashboard":
+      await renderDashboard();
+      break;
+
+    case "inquiries":
+      await renderInquiries();
+      break;
+
+    case "orders":
+      await renderGenericTablePage("orders", "Aufträge");
+      break;
+
+    case "customers":
+      await renderGenericTablePage("customers", "Kunden");
+      break;
+
+    case "calendar":
+      await renderCalendar();
+      break;
+
+    case "equipment":
+      await renderGenericTablePage("equipment", "Equipment");
+      break;
+
+    case "music":
+      await renderGenericTablePage("music_requests", "Musikwünsche");
+      break;
+
+    case "tasks":
+      await renderGenericTablePage("tasks", "Aufgaben");
+      break;
+
+    case "documents":
+      await renderGenericTablePage("financial_documents", "Dokumente");
+      break;
+
+    case "offers":
+      await renderGenericTablePage("offers", "Angebote");
+      break;
+
+    case "invoices":
+      await renderInvoices();
+      break;
+
+    case "website":
+      await renderWebsite();
+      break;
+
+    case "settings":
+      await renderSettings();
+      break;
+
+    case "finance":
+      await renderFinance();
+      break;
+
+    default:
+      content.innerHTML = "<div class='empty'>Bereich nicht gefunden.</div>";
+  }
+}
+
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+
+async function renderDashboard() {
+
+  const content = document.getElementById("internalContent");
+
+  const [
+    inquiries,
+    orders,
+    customers,
+    events,
+    tasks
+  ] = await Promise.all([
+    safeSelect("inquiries"),
+    safeSelect("orders"),
+    safeSelect("customers"),
+    safeSelect("events"),
+    safeSelect("tasks")
+  ]);
+
+  const openInquiries = inquiries.filter(x =>
+    !["abgeschlossen", "erledigt", "archiviert"].includes(
+      String(x.status || "").toLowerCase()
+    )
+  );
+
+  const upcomingEvents = events
+    .filter(x => x.start_time && new Date(x.start_time) >= new Date())
+    .sort((a,b) => new Date(a.start_time) - new Date(b.start_time))
+    .slice(0,5);
+
+  const openTasks = tasks.filter(x =>
+    !["erledigt", "done", "completed"].includes(
+      String(x.status || "").toLowerCase()
+    )
+  );
+
+  content.innerHTML = `
+
+    <div class="page-header">
+      <div>
+        <h1>${getGreeting()} 👋</h1>
+        <p style="color:#64748b;margin-bottom:0;">
+          Willkommen im RuhrGeBeats Management-System.
+        </p>
       </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+      <div class="dash-card" onclick="openInternalPage('inquiries')">
+        <div class="dash-icon">📥</div>
+        <h3>Anfragen</h3>
+        <p>${openInquiries.length} offene Anfragen</p>
+      </div>
+
+      <div class="dash-card" onclick="openInternalPage('orders')">
+        <div class="dash-icon">📋</div>
+        <h3>Aufträge</h3>
+        <p>${orders.length} Aufträge</p>
+      </div>
+
+      <div class="dash-card" onclick="openInternalPage('customers')">
+        <div class="dash-icon">👥</div>
+        <h3>Kunden</h3>
+        <p>${customers.length} Kunden</p>
+      </div>
+
+      <div class="dash-card" onclick="openInternalPage('calendar')">
+        <div class="dash-icon">📅</div>
+        <h3>Kalender</h3>
+        <p>${upcomingEvents.length} kommende Veranstaltungen</p>
+      </div>
+
+      <div class="dash-card" onclick="openInternalPage('equipment')">
+        <div class="dash-icon">💡</div>
+        <h3>Equipment</h3>
+        <p>Technik verwalten</p>
+      </div>
+
+      <div class="dash-card" onclick="openInternalPage('music')">
+        <div class="dash-icon">🎵</div>
+        <h3>Musikwünsche</h3>
+        <p>Wünsche der Veranstaltungen</p>
+      </div>
+
+      <div class="dash-card" onclick="openInternalPage('tasks')">
+        <div class="dash-icon">✅</div>
+        <h3>Aufgaben</h3>
+        <p>${openTasks.length} offene Aufgaben</p>
+      </div>
+
+      <div class="dash-card" onclick="openInternalPage('invoices')">
+        <div class="dash-icon">🧾</div>
+        <h3>Rechnungen</h3>
+        <p>Rechnungen verwalten</p>
+      </div>
+
+    </div>
+
+
+    <div class="dashboard-section">
+
+      <h2>Neue Anfragen</h2>
+
+      ${
+        openInquiries.length
+        ? `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Datum</th>
+                  <th>Veranstaltung</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${openInquiries.slice(0,5).map(i => `
+                  <tr>
+                    <td>${escapeHtml(i.order_name)}</td>
+                    <td>${formatDate(i.event_date)}</td>
+                    <td>${escapeHtml(i.event_type || i.event_location || "-")}</td>
+                    <td>${statusBadge(i.status)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `
+        : `<div class="empty">Keine offenen Anfragen.</div>`
+      }
+
+    </div>
+
+
+    <div class="dashboard-section">
+
+      <h2>Kommende Veranstaltungen</h2>
+
+      ${
+        upcomingEvents.length
+        ? `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Veranstaltung</th>
+                  <th>Beginn</th>
+                  <th>Ort</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${upcomingEvents.map(e => `
+                  <tr>
+                    <td>${escapeHtml(e.title)}</td>
+                    <td>${formatDateTime(e.start_time)}</td>
+                    <td>${escapeHtml(e.location || "-")}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `
+        : `<div class="empty">Keine kommenden Veranstaltungen eingetragen.</div>`
+      }
+
+    </div>
+  `;
+}
+
+
+function getGreeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 11) return "Guten Morgen";
+  if (hour < 18) return "Guten Tag";
+  return "Guten Abend";
+}
+
+
+/* ============================================================
+   INQUIRIES
+============================================================ */
+
+async function renderInquiries() {
+
+  const content = document.getElementById("internalContent");
+
+  const { data, error } = await rbsupabase
+    .from("inquiries")
+    .select("*")
+    .order("created_at", { ascending:false });
+
+  if (error) {
+    content.innerHTML = errorBox(error);
+    return;
+  }
+
+  content.innerHTML = `
+
+    <div class="page-header">
+      <div>
+        <h1>Kundenanfragen</h1>
+        <p style="color:#64748b;">
+          Eingehende Veranstaltungsanfragen bearbeiten.
+        </p>
+      </div>
+
+      <button class="btn btn-primary" onclick="showInquiryForm()">
+        + Neue Anfrage
+      </button>
+    </div>
+
+    <div class="dashboard-section">
+
+      ${
+        !data || !data.length
+        ? `<div class="empty">Keine Anfragen vorhanden.</div>`
+        : `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Auftraggeber</th>
+                  <th>Kontakt</th>
+                  <th>Datum</th>
+                  <th>Art</th>
+                  <th>Gäste</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+
+              <tbody>
+                ${data.map(i => `
+                  <tr>
+                    <td>
+                      <strong>${escapeHtml(i.order_name)}</strong>
+                      <br>
+                      <small>${escapeHtml(i.email || "")}</small>
+                    </td>
+
+                    <td>
+                      ${escapeHtml(i.contact_person || "-")}
+                      <br>
+                      ${escapeHtml(i.phone || "-")}
+                    </td>
+
+                    <td>${formatDate(i.event_date)}</td>
+
+                    <td>${escapeHtml(i.event_type || "-")}</td>
+
+                    <td>${escapeHtml(i.guest_count || "-")}</td>
+
+                    <td>${statusBadge(i.status)}</td>
+
+                    <td>
+                      <button class="small-btn primary"
+                              onclick='showInquiryDetail(${JSON.stringify(i).replace(/'/g,"&#39;")})'>
+                        Öffnen
+                      </button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `
+      }
+
+    </div>
+  `;
+}
+
+
+function showInquiryDetail(inquiry) {
+
+  const old = document.getElementById("detailModal");
+
+  if (old) old.remove();
+
+  const html = `
+
+    <div id="detailModal" class="modal-overlay">
+
+      <div class="modal" style="width:min(850px,100%);">
+
+        <div class="modal-header">
+          <div>
+            <h2>Anfrage</h2>
+            <p style="color:#64748b;margin:0;">
+              ${escapeHtml(inquiry.order_name)}
+            </p>
+          </div>
+
+          <button class="close"
+                  onclick="document.getElementById('detailModal').remove()">
+            ✕
+          </button>
+        </div>
+
+        <div class="dashboard-section">
+
+          <h3>Kontaktdaten</h3>
+
+          <p><strong>E-Mail:</strong> ${escapeHtml(inquiry.email)}</p>
+          <p><strong>Telefon:</strong> ${escapeHtml(inquiry.phone)}</p>
+          <p><strong>Ansprechpartner:</strong> ${escapeHtml(inquiry.contact_person || "-")}</p>
+
+          <h3>Veranstaltung</h3>
+
+          <p><strong>Datum:</strong> ${formatDate(inquiry.event_date)}</p>
+          <p><strong>Ort:</strong> ${escapeHtml(inquiry.event_location || "-")}</p>
+          <p><strong>Art:</strong> ${escapeHtml(inquiry.event_type || "-")}</p>
+          <p><strong>Gäste:</strong> ${escapeHtml(inquiry.guest_count || "-")}</p>
+          <p><strong>Reinfeiern:</strong> ${escapeHtml(inquiry.reinfeiern || "-")}</p>
+
+          <h3>Technik</h3>
+
+          <p><strong>Vorhanden:</strong> ${escapeHtml(inquiry.existing_tech || "-")}</p>
+          <p><strong>Benötigt:</strong> ${escapeHtml(inquiry.required_tech || "-")}</p>
+
+          <h3>Musik & Ablauf</h3>
+
+          <p><strong>Aufbau:</strong> ${escapeHtml(inquiry.earliest_setup_time || "-")}</p>
+          <p><strong>DJ-Spielzeit:</strong> ${escapeHtml(inquiry.dj_play_time || "-")}</p>
+
+          <p>
+            <strong>Musikwünsche:</strong><br>
+            ${escapeHtml(inquiry.music_wishes || "-")}
+          </p>
+
+          <p>
+            <strong>Besondere Hinweise:</strong><br>
+            ${escapeHtml(inquiry.special_notes || "-")}
+          </p>
+
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
+
+          <button class="small-btn"
+                  onclick="updateInquiryStatus('${inquiry.id}','kontaktiert')">
+            Kontaktiert
+          </button>
+
+          <button class="small-btn primary"
+                  onclick="updateInquiryStatus('${inquiry.id}','angebot')">
+            Angebot erstellen
+          </button>
+
+        </div>
+
+      </div>
+
     </div>
   `;
 
   document.body.insertAdjacentHTML("beforeend", html);
-}async function loadInquiryCount() {
-  const { count, error } = await rbsupabase
+}
+
+
+async function updateInquiryStatus(id, status) {
+
+  const { error } = await rbsupabase
     .from("inquiries")
-    .select("id", { count: "exact", head: true });
+    .update({
+      status,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", id);
 
   if (error) {
-    console.error("Fehler beim Laden der Anfragen:", error);
+    alert("Fehler: " + error.message);
     return;
   }
 
-  const inquiryCount = document.getElementById("inquiryCount");
+  const modal = document.getElementById("detailModal");
 
-  if (inquiryCount) {
-    inquiryCount.textContent = count ?? 0;
-  }
+  if (modal) modal.remove();
+
+  await renderInquiries();
 }
 
-loadInquiryCount();
-  checkLogin();
-</script></body>
+
+/* ============================================================
+   GENERIC TABLE VIEW
+============================================================ */
+
+async function safeSelect(table) {
+
+  const { data, error } = await rbsupabase
+    .from(table)
+    .select("*");
+
+  if (error) {
+    console.error(table, error);
+    return [];
+  }
+
+  return data || [];
+}
+
+
+async function renderGenericTablePage(table, title) {
+
+  const content = document.getElementById("internalContent");
+
+  const { data, error } = await rbsupabase
+    .from(table)
+    .select("*")
+    .limit(200);
+
+  if (error) {
+    content.innerHTML = errorBox(error);
+    return;
+  }
+
+  if (!data || !data.length) {
+
+    content.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1>${escapeHtml(title)}</h1>
+        </div>
+      </div>
+
+      <div class="dashboard-section">
+        <div class="empty">
+          Noch keine Einträge vorhanden.
+        </div>
+      </div>
+    `;
+
+    return;
+  }
+
+  const columns = Object.keys(data[0]);
+
+  content.innerHTML = `
+
+    <div class="page-header">
+      <div>
+        <h1>${escapeHtml(title)}</h1>
+        <p style="color:#64748b;">
+          ${data.length} Einträge
+        </p>
+      </div>
+    </div>
+
+    <div class="dashboard-section">
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+            <tr>
+              ${columns.map(c => `<th>${escapeHtml(c)}</th>`).join("")}
+            </tr>
+          </thead>
+
+          <tbody>
+
+            ${data.map(row => `
+              <tr>
+                ${columns.map(c => `
+                  <td>
+                    ${formatCell(row[c], c)}
+                  </td>
+                `).join("")}
+              </tr>
+            `).join("")}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+function formatCell(value, column) {
+
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  if (column.includes("created_at") || column.includes("updated_at")) {
+    return escapeHtml(formatDateTime(value));
+  }
+
+  if (column.includes("date") && !column.includes("updated")) {
+    return escapeHtml(formatDate(value));
+  }
+
+  if (column === "status") {
+    return statusBadge(value);
+  }
+
+  if (
+    typeof value === "object"
+  ) {
+    return `<pre style="white-space:pre-wrap;margin:0;">${escapeHtml(JSON.stringify(value))}</pre>`;
+  }
+
+  return escapeHtml(value);
+}
+
+
+function errorBox(error) {
+
+  return `
+    <div class="dashboard-section">
+
+      <div class="finance-warning">
+        <strong>Daten konnten nicht geladen werden.</strong>
+        <br><br>
+        ${escapeHtml(error.message || error)}
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   CALENDAR
+============================================================ */
+
+async function renderCalendar() {
+
+  const content = document.getElementById("internalContent");
+
+  const { data, error } = await rbsupabase
+    .from("events")
+    .select("*")
+    .order("start_time", { ascending:true });
+
+  if (error) {
+    content.innerHTML = errorBox(error);
+    return;
+  }
+
+  const events = data || [];
+
+  content.innerHTML = `
+
+    <div class="page-header">
+      <div>
+        <h1>Kalender</h1>
+        <p style="color:#64748b;">
+          Veranstaltungen und Termine.
+        </p>
+      </div>
+    </div>
+
+    <div class="dashboard-section">
+
+      ${
+        !events.length
+        ? `<div class="empty">Keine Veranstaltungen vorhanden.</div>`
+        : `
+          <div class="table-wrap">
+            <table>
+
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Veranstaltung</th>
+                  <th>Beginn</th>
+                  <th>Ende</th>
+                  <th>Ort</th>
+                  <th>Art</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                ${events.map(e => `
+                  <tr>
+                    <td>${formatDate(e.start_time)}</td>
+                    <td><strong>${escapeHtml(e.title)}</strong></td>
+                    <td>${formatDateTime(e.start_time)}</td>
+                    <td>${formatDateTime(e.end_time)}</td>
+                    <td>${escapeHtml(e.location || "-")}</td>
+                    <td>${escapeHtml(e.event_type || "-")}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+
+            </table>
+          </div>
+        `
+      }
+
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   INVOICES
+============================================================ */
+
+async function renderInvoices() {
+
+  const content = document.getElementById("internalContent");
+
+  const { data, error } = await rbsupabase
+    .from("invoices")
+    .select("*")
+    .limit(200);
+
+  if (error) {
+    content.innerHTML = errorBox(error);
+    return;
+  }
+
+  const invoices = data || [];
+
+  content.innerHTML = `
+
+    <div class="page-header">
+
+      <div>
+        <h1>Rechnungen</h1>
+        <p style="color:#64748b;">
+          Entwurf → erstellt → versendet → fällig → bezahlt → überfällig
+        </p>
+      </div>
+
+    </div>
+
+    <div class="dashboard-section">
+
+      ${
+        !invoices.length
+        ? `<div class="empty">Keine Rechnungen vorhanden.</div>`
+        : `
+          <div class="table-wrap">
+            <table>
+
+              <thead>
+                <tr>
+                  ${Object.keys(invoices[0]).map(c =>
+                    `<th>${escapeHtml(c)}</th>`
+                  ).join("")}
+                </tr>
+              </thead>
+
+              <tbody>
+
+                ${invoices.map(invoice => `
+                  <tr>
+                    ${Object.keys(invoices[0]).map(c =>
+                      `<td>${formatCell(invoice[c], c)}</td>`
+                    ).join("")}
+                  </tr>
+                `).join("")}
+
+              </tbody>
+
+            </table>
+          </div>
+        `
+      }
+
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   WEBSITE / NEWS
+============================================================ */
+
+async function renderWebsite() {
+
+  const content = document.getElementById("internalContent");
+
+  content.innerHTML = `
+
+    <div class="page-header">
+      <div>
+        <h1>Website & News</h1>
+        <p style="color:#64748b;">
+          Inhalte der öffentlichen Website verwalten.
+        </p>
+      </div>
+    </div>
+
+    <div class="dashboard-section">
+
+      <h2>Öffentliche Website</h2>
+
+      <p>
+        Dieser Bereich ist für zukünftige dynamische Website-Inhalte
+        vorbereitet.
+      </p>
+
+      <div class="cards">
+
+        <div class="public-card">
+          <h3>📰 News</h3>
+          <p>Neuigkeiten und Meldungen verwalten.</p>
+          <button class="small-btn primary">
+            News verwalten
+          </button>
+        </div>
+
+        <div class="public-card">
+          <h3>📸 Bilder</h3>
+          <p>Eventbilder und Unternehmensbilder verwalten.</p>
+          <button class="small-btn">
+            Bilder
+          </button>
+        </div>
+
+        <div class="public-card">
+          <h3>⭐ Bewertungen</h3>
+          <p>Kundenfeedback prüfen und für die Website freigeben.</p>
+          <button class="small-btn">
+            Bewertungen
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   SETTINGS
+============================================================ */
+
+async function renderSettings() {
+
+  const content = document.getElementById("internalContent");
+
+  const {
+    data: { user }
+  } = await rbsupabase.auth.getUser();
+
+  content.innerHTML = `
+
+    <div class="page-header">
+      <div>
+        <h1>Einstellungen</h1>
+        <p style="color:#64748b;">
+          Benutzer- und Systemeinstellungen.
+        </p>
+      </div>
+    </div>
+
+    <div class="dashboard-section">
+
+      <h2>Angemeldeter Benutzer</h2>
+
+      <p>
+        <strong>E-Mail:</strong>
+        ${escapeHtml(user?.email || "-")}
+      </p>
+
+      <p>
+        <strong>Authentifizierung:</strong>
+        Supabase Auth
+      </p>
+
+    </div>
+
+    <div class="dashboard-section">
+
+      <h2>Sicherheit</h2>
+
+      <p>
+        Interne Zugriffe werden über Supabase Auth und Row Level Security
+        abgesichert.
+      </p>
+
+      <p>
+        Für den Finanzbereich sollte zusätzlich eine erneute Authentifizierung
+        bzw. MFA erzwungen werden.
+      </p>
+
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   FINANCE
+============================================================ */
+
+async function renderFinance() {
+
+  const content = document.getElementById("internalContent");
+
+  const [
+    bankAccounts,
+    transactions,
+    expenses,
+    cashbook,
+    shareholders,
+    taxes,
+    documents
+  ] = await Promise.all([
+    safeSelect("bank_accounts"),
+    safeSelect("bank_transactions"),
+    safeSelect("expenses"),
+    safeSelect("cashbook_entries"),
+    safeSelect("shareholder_accounts"),
+    safeSelect("tax_entries"),
+    safeSelect("financial_documents")
+  ]);
+
+  content.innerHTML = `
+
+    <div class="page-header">
+
+      <div>
+        <h1>🔒 Finanzen & Verwaltung</h1>
+
+        <p style="color:#64748b;">
+          Interner Finanz- und Verwaltungsbereich.
+        </p>
+      </div>
+
+    </div>
+
+    <div class="finance-warning">
+      <strong>Hinweis:</strong>
+      Diese Anwendung unterstützt eure interne Finanzverwaltung.
+      Sie ersetzt nicht automatisch eine GoBD-konforme Buchhaltungssoftware
+      oder die steuerliche Prüfung durch einen Steuerberater.
+    </div>
+
+
+    <div class="metric-grid">
+
+      <div class="metric">
+        <div class="metric-label">Bankkonten</div>
+        <div class="metric-value">${bankAccounts.length}</div>
+      </div>
+
+      <div class="metric">
+        <div class="metric-label">Banktransaktionen</div>
+        <div class="metric-value">${transactions.length}</div>
+      </div>
+
+      <div class="metric">
+        <div class="metric-label">Ausgaben</div>
+        <div class="metric-value">${expenses.length}</div>
+      </div>
+
+      <div class="metric">
+        <div class="metric-label">Steuereinträge</div>
+        <div class="metric-value">${taxes.length}</div>
+      </div>
+
+    </div>
+
+
+    <div class="dashboard-grid">
+
+      <div class="dash-card" onclick="renderFinanceTable('bank_accounts','Bankkonten')">
+        <div class="dash-icon">🏦</div>
+        <h3>Bankkonten</h3>
+        <p>Geschäftskonto & Steuerkonto</p>
+      </div>
+
+      <div class="dash-card" onclick="renderFinanceTable('bank_transactions','Banktransaktionen')">
+        <div class="dash-icon">💳</div>
+        <h3>Banktransaktionen</h3>
+        <p>Einnahmen & Ausgaben</p>
+      </div>
+
+      <div class="dash-card" onclick="renderFinanceTable('expenses','Ausgaben & Belege')">
+        <div class="dash-icon">🧾</div>
+        <h3>Ausgaben</h3>
+        <p>Belege und Kosten</p>
+      </div>
+
+      <div class="dash-card" onclick="renderFinanceTable('cashbook_entries','Kassenbuch')">
+        <div class="dash-icon">💶</div>
+        <h3>Kassenbuch</h3>
+        <p>Manuelle Kassenbewegungen</p>
+      </div>
+
+      <div class="dash-card" onclick="renderFinanceTable('shareholder_accounts','Gesellschafter')">
+        <div class="dash-icon">👥</div>
+        <h3>Gesellschafter</h3>
+        <p>Tom & Lenny</p>
+      </div>
+
+      <div class="dash-card" onclick="renderFinanceTable('tax_entries','Umsatzsteuer & Steuern')">
+        <div class="dash-icon">🏛️</div>
+        <h3>Steuern</h3>
+        <p>Steuerpositionen verwalten</p>
+      </div>
+
+      <div class="dash-card" onclick="renderFinanceTable('financial_documents','Finanzdokumente')">
+        <div class="dash-icon">📁</div>
+        <h3>Finanzdokumente</h3>
+        <p>Belege und Unterlagen</p>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-icon">📊</div>
+        <h3>EÜR</h3>
+        <p>Auswertung vorbereiten</p>
+      </div>
+
+    </div>
+
+
+    <div class="dashboard-section">
+
+      <h2>Finanzlogik</h2>
+
+      <p>
+        Einnahmen, Ausgaben, Umsatzsteuer, Gesellschafterkonten und
+        interne Kontenbewegungen werden getrennt behandelt.
+      </p>
+
+      <p>
+        Ein Transfer zwischen Geschäftskonto und Steuerkonto ist keine
+        Betriebseinnahme und keine Betriebsausgabe.
+      </p>
+
+      <p>
+        Eine privat bezahlte betriebliche Rechnung kann als Einlage des
+        entsprechenden Gesellschafters erfasst werden.
+      </p>
+
+    </div>
+  `;
+}
+
+
+async function renderFinanceTable(table, title) {
+
+  const content = document.getElementById("internalContent");
+
+  await renderGenericTablePage(table, title);
+}
+
+
+/* ============================================================
+   CUSTOMER PORTAL
+============================================================ */
+
+async function showCustomerPortal(user, profile) {
+
+  document.getElementById("publicSite").classList.add("hidden");
+  document.getElementById("internalApp").classList.add("hidden");
+  document.getElementById("customerPortal").classList.remove("hidden");
+
+  const content = document.getElementById("customerPortalContent");
+
+  const { data: customer, error } = await rbsupabase
+    .from("customers")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    content.innerHTML = errorBox(error);
+    return;
+  }
+
+  if (!customer) {
+
+    content.innerHTML = `
+      <div class="portal-card">
+        <h3>Noch kein Kundenprofil</h3>
+        <p>
+          Dein Login ist eingerichtet, aber es wurde noch kein Kundenprofil
+          zugeordnet.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  const { data: orders } = await rbsupabase
+    .from("orders")
+    .select("*")
+    .eq("customer_id", customer.id)
+    .order("event_date", { ascending:true });
+
+  const { data: inquiries } = await rbsupabase
+    .from("inquiries")
+    .select("*")
+    .eq("customer_id", customer.id)
+    .order("created_at", { ascending:false });
+
+  const { data: offers } = await rbsupabase
+    .from("offers")
+    .select("*")
+    .eq("customer_id", customer.id);
+
+  const { data: invoices } = await rbsupabase
+    .from("invoices")
+    .select("*")
+    .eq("customer_id", customer.id);
+
+  content.innerHTML = `
+
+    <div class="portal-grid">
+
+      <div class="portal-card">
+        <h3>👤 Meine Daten</h3>
+        <p>
+          <strong>${escapeHtml(customer.first_name || "")}
+          ${escapeHtml(customer.last_name || "")}</strong>
+        </p>
+        <p>${escapeHtml(customer.email || "")}</p>
+        <p>${escapeHtml(customer.phone || "")}</p>
+      </div>
+
+      <div class="portal-card">
+        <h3>📋 Aufträge</h3>
+        <div style="font-size:28px;font-weight:900;">
+          ${(orders || []).length}
+        </div>
+        <p>deine Aufträge</p>
+      </div>
+
+      <div class="portal-card">
+        <h3>📝 Angebote</h3>
+        <div style="font-size:28px;font-weight:900;">
+          ${(offers || []).length}
+        </div>
+        <p>vorhandene Angebote</p>
+      </div>
+
+    </div>
+
+
+    <div class="dashboard-section" style="margin-top:20px;">
+
+      <h2>Meine Veranstaltungen</h2>
+
+      ${
+        !orders?.length
+        ? `<div class="empty">Noch keine gebuchten Veranstaltungen.</div>`
+        : `
+          <div class="table-wrap">
+            <table>
+
+              <thead>
+                <tr>
+                  <th>Auftragsnummer</th>
+                  <th>Datum</th>
+                  <th>Veranstaltung</th>
+                  <th>Ort</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                ${orders.map(o => `
+                  <tr>
+                    <td>${escapeHtml(o.order_number || "-")}</td>
+                    <td>${formatDate(o.event_date)}</td>
+                    <td>${escapeHtml(o.event_type || "-")}</td>
+                    <td>${escapeHtml(o.event_location || "-")}</td>
+                    <td>${statusBadge(o.status)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+
+            </table>
+          </div>
+        `
+      }
+
+    </div>
+
+
+    <div class="dashboard-section">
+
+      <h2>Meine Rechnungen</h2>
+
+      ${
+        !invoices?.length
+        ? `<div class="empty">Keine Rechnungen vorhanden.</div>`
+        : `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  ${Object.keys(invoices[0]).map(c =>
+                    `<th>${escapeHtml(c)}</th>`
+                  ).join("")}
+                </tr>
+              </thead>
+
+              <tbody>
+                ${invoices.map(i => `
+                  <tr>
+                    ${Object.keys(invoices[0]).map(c =>
+                      `<td>${formatCell(i[c], c)}</td>`
+                    ).join("")}
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `
+      }
+
+    </div>
+
+  `;
+}
+
+
+/* ============================================================
+   AUTH STATE
+============================================================ */
+
+rbsupabase.auth.onAuthStateChange(async (event, session) => {
+
+  if (event === "SIGNED_OUT") {
+
+    document.getElementById("internalApp").classList.add("hidden");
+    document.getElementById("customerPortal").classList.add("hidden");
+    document.getElementById("publicSite").classList.remove("hidden");
+
+  }
+
+});
+
+
+/* ============================================================
+   ESCAPE KEY
+============================================================ */
+
+document.addEventListener("keydown", function(e) {
+
+  if (e.key === "Escape") {
+
+    closeLogin();
+    closeInquiryForm();
+
+    const detail = document.getElementById("detailModal");
+
+    if (detail) detail.remove();
+  }
+
+});
+</script>
+
+</body>
 </html>
