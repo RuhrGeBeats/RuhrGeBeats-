@@ -208,5 +208,115 @@
 
 </main>
 
-</body>
+<!-- LOGIN -->
+<div id="loginScreen" style="
+  position:fixed;
+  inset:0;
+  background:#f5f7fa;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+">
+  <div style="
+    width:100%;
+    max-width:420px;
+    margin:20px;
+    background:white;
+    padding:40px;
+    border-radius:16px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.08);
+  ">
+    <h1 style="margin-top:0;">RuhrGeBeats</h1>
+    <p style="color:#666;">DJ Business Center</p>
+
+    <label>E-Mail</label>
+    <input
+      id="loginEmail"
+      type="email"
+      placeholder="E-Mail-Adresse"
+      style="
+        width:100%;
+        box-sizing:border-box;
+        padding:12px;
+        margin:8px 0 18px;
+        border:1px solid #ddd;
+        border-radius:8px;
+      "
+    >
+
+    <label>Passwort</label>
+    <input
+      id="loginPassword"
+      type="password"
+      placeholder="Passwort"
+      style="
+        width:100%;
+        box-sizing:border-box;
+        padding:12px;
+        margin:8px 0 18px;
+        border:1px solid #ddd;
+        border-radius:8px;
+      "
+    >
+
+    <button
+      id="loginButton"
+      style="
+        width:100%;
+        padding:13px;
+        border:0;
+        border-radius:8px;
+        background:#111827;
+        color:white;
+        font-size:16px;
+        cursor:pointer;
+      "
+    >
+      Anmelden
+    </button>
+
+    <p id="loginMessage" style="
+      margin-top:15px;
+      color:#c00;
+    "></p>
+  </div>
+</div>
+
+<script>
+  const loginScreen = document.getElementById("loginScreen");
+  const loginButton = document.getElementById("loginButton");
+  const loginMessage = document.getElementById("loginMessage");
+
+  async function checkLogin() {
+    const { data } = await rbsupabase.auth.getSession();
+
+    if (data.session) {
+      loginScreen.style.display = "none";
+    } else {
+      loginScreen.style.display = "flex";
+    }
+  }
+
+  loginButton.addEventListener("click", async () => {
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+
+    loginMessage.textContent = "";
+
+    const { error } = await rbsupabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) {
+      loginMessage.textContent = "Anmeldung fehlgeschlagen: " + error.message;
+      return;
+    }
+
+    loginScreen.style.display = "none";
+  });
+
+  checkLogin();
+</script></body>
 </html>
