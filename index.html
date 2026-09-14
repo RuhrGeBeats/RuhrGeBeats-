@@ -140,7 +140,11 @@
             <div class="icon">👥</div>
             <h3>Kunden</h3>
             <p>Kunden und Kontakte verwalten</p>
-        </div>
+        </div><div class="card">
+  <div class="icon">📩</div>
+  <h3>Anfragen</h3>
+  <p><span id="inquiryCount">0</span> offene Anfragen</p>
+</div>
 
         <div class="card">
             <div class="icon">📋</div>
@@ -316,7 +320,24 @@
 
     loginScreen.style.display = "none";
   });
+async function loadInquiryCount() {
+  const { count, error } = await rbsupabase
+    .from("inquiries")
+    .select("id", { count: "exact", head: true });
 
+  if (error) {
+    console.error("Fehler beim Laden der Anfragen:", error);
+    return;
+  }
+
+  const inquiryCount = document.getElementById("inquiryCount");
+
+  if (inquiryCount) {
+    inquiryCount.textContent = count ?? 0;
+  }
+}
+
+loadInquiryCount();
   checkLogin();
 </script></body>
 </html>
