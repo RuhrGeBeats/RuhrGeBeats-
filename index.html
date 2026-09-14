@@ -142,7 +142,7 @@
             <p>Kunden und Kontakte verwalten</p>
         </div><div class="card">
   <div class="icon">📩</div>
-  <h3>Anfragen</h3>
+  <h3 onclick="showInquiries()" style="cursor:pointer;">Anfragen</h3>
   <p><span id="inquiryCount">0</span> offene Anfragen</p>
 </div>
 
@@ -320,7 +320,84 @@
 
     loginScreen.style.display = "none";
   });
-async function loadInquiryCount() {
+async function showInquiries() {
+  const { data, error } = await rbsupabase
+    .from("inquiries")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    alert("Fehler beim Laden der Anfragen: " + error.message);
+    return;
+  }
+
+  let html = `
+    <div id="inquiriesModal" style="
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.45);
+      z-index:10000;
+      overflow:auto;
+      padding:40px 20px;
+    ">
+      <div style="
+        max-width:900px;
+        margin:auto;
+        background:white;
+        border-radius:16px;
+        padding:30px;
+      ">
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin-bottom:25px;
+        ">
+          <h2 style="margin:0;">Kundenanfragen</h2>
+          <button onclick="document.getElementById('inquiriesModal').remove()" style="
+            border:0;
+            background:#eee;
+            border-radius:8px;
+            padding:8px 12px;
+            cursor:pointer;
+            font-size:18px;
+          ">✕</button>
+        </div>
+  `;
+
+  if (!data || data.length === 0) {
+    html += `
+      <p style="color:#666;">
+        Es sind aktuell keine Kundenanfragen vorhanden.
+      </p>
+    `;
+  } else {
+    data.forEach((inquiry, index) => {
+      html += `
+        <div style="
+          border:1px solid #e5e7eb;
+          border-radius:12px;
+          padding:20px;
+          margin-bottom:15px;
+        ">
+          <h3>Anfrage ${index + 1}</h3>
+          <pre style="
+            white-space:pre-wrap;
+            font-family:inherit;
+            color:#444;
+          ">${JSON.stringify(inquiry, null, 2)}</pre>
+        </div>
+      `;
+    });
+  }
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", html);
+}async function loadInquiryCount() {
   const { count, error } = await rbsupabase
     .from("inquiries")
     .select("id", { count: "exact", head: true });
