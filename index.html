@@ -7,6 +7,8 @@
   <meta name="description" content="RuhrGeBeats – professioneller mobiler DJ für Geburtstage, Hochzeiten und private Veranstaltungen im Ruhrgebiet und NRW.">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
   <style>
     :root {
@@ -1640,6 +1642,151 @@ function customerFeedbackModal(){if(!currentCustomer)return notify("Kein Kundenp
 /* ---------- ESCAPE / START ---------- */
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeLogin();closeInquiryForm();closeAllDynamicModals()}});
 window.addEventListener("load",initApp);
+/* ===== RuhrGeBeats final enhancements ===== */
+
+function rbEnsurePdfLib(){
+  return !!(window.jspdf && window.jspdf.jsPDF);
+}
+
+function rbLoadScript(src){
+  return new Promise((resolve,reject)=>{
+    if(document.querySelector(`script[src="${src}"]`)) return resolve();
+    const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s);
+  });
+}
+
+async function ensurePdfLib(){
+  if(rbEnsurePdfLib()) return true;
+  await rbLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  await rbLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+  return rbEnsurePdfLib();
+}
+
+function pdfSafe(v){return String(v??'').replace(/[\u0000-\u001f]/g,' ').trim()}
+function rbPdfHeader(doc,title,number){
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.text('RuhrGeBeats GbR',20,20);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.text('Mobiler DJ im Ruhrgebiet & NRW',20,27);
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(title,190,20,{align:'right'});
+  if(number) {doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.text(pdfSafe(number),190,27,{align:'right'});}
+  doc.line(20,32,190,32);
+}
+
+async function getCustomerForDocument(id){
+  const {data,error}=await rbsupabase.from('customers').select('*').eq('id',id).maybeSingle();
+  if(error) throw error; return data;
+}
+function customerAddress(c){return [c?.street&&`${c.street} ${c.house_number||''}`,c?.postal_code&&`${c.postal_code} ${c.city||''}`,c?.country].filter(Boolean).join(', ')}
+
+async function buildOfferPdf(id){
+  if(!(await ensurePdfLib())) throw new Error('PDF-Bibliothek konnte nicht geladen werden.');
+  const {jsPDF}=window.jspdf; const {data:o,error}=await rbsupabase.from('offers').select('*').eq('id',id).single(); if(error)throw error;
+  const items=(await rbsupabase.from('offer_items').select('*').eq('offer_id',id).order('sort_order')).data||[];
+  const c=await getCustomerForDocument(o.customer_id); const ord=(await rbsupabase.from('orders').select('*').eq('id',o.order_id).maybeSingle()).data;
+  const doc=new jsPDF(); rbPdfHeader(doc,'ANGEBOT',o.offer_number);
+  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.text('An:',20,45); doc.setFont('helvetica','normal');
+  doc.text(pdfSafe([c?.first_name,c?.last_name].filter(Boolean).join(' ')||c?.company_name||'Kunde'),20,52);
+  doc.text(pdfSafe(customerAddress(c)),20,59);
+  doc.text(`Angebotsdatum: ${formatDate(o.issue_date)}`,190,45,{align:'right'}); if(o.valid_until)doc.text(`Gültig bis: ${formatDate(o.valid_until)}`,190,52,{align:'right'});
+  if(ord){doc.setFont('helvetica','bold');doc.text('Veranstaltung',20,72);doc.setFont('helvetica','normal');doc.text(pdfSafe(`${ord.event_type||'Event'} · ${formatDate(ord.event_date)}`),20,79);doc.text(pdfSafe(ord.event_location||''),20,86);}
+  doc.autoTable({startY:95,head:[['Leistung','Menge','Einzelpreis netto','Netto','USt','Brutto']],body:items.map(x=>[pdfSafe(x.description),String(x.quantity),formatMoney(x.unit_price_net),formatMoney(x.net_amount),formatMoney(x.vat_amount),formatMoney(x.gross_amount)]),styles:{fontSize:9},headStyles:{fontStyle:'bold'}});
+  let y=(doc.lastAutoTable?.finalY||100)+12; doc.setFont('helvetica','normal'); doc.text(`Netto: ${formatMoney(o.subtotal_net)}`,190,y,{align:'right'}); y+=7; doc.text(`Umsatzsteuer: ${formatMoney(o.vat_amount)}`,190,y,{align:'right'}); y+=8; doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(`Gesamt: ${formatMoney(o.total_gross)}`,190,y,{align:'right'}); y+=12;
+  if(o.notes){doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text('Hinweise:',20,y);y+=6;doc.text(doc.splitTextToSize(pdfSafe(o.notes),170),20,y);}
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.text('Erstellt mit RuhrGeBeats.',20,285);
+  return {doc,filename:`${o.offer_number||'Angebot'}.pdf`,record:o,customer:c};
+}
+
+async function downloadOfferPdf(id){try{const x=await buildOfferPdf(id);x.doc.save(x.filename);notify('Angebot als PDF erstellt.')}catch(e){console.error(e);notify(e.message,'error')}}
+
+async function buildInvoicePdf(id){
+  if(!(await ensurePdfLib())) throw new Error('PDF-Bibliothek konnte nicht geladen werden.');
+  const {jsPDF}=window.jspdf; const {data:i,error}=await rbsupabase.from('invoices').select('*').eq('id',id).single(); if(error)throw error;
+  const items=(await rbsupabase.from('invoice_items').select('*').eq('invoice_id',id).order('sort_order')).data||[];
+  const c=await getCustomerForDocument(i.customer_id); const ord=(await rbsupabase.from('orders').select('*').eq('id',i.order_id).maybeSingle()).data;
+  const doc=new jsPDF(); rbPdfHeader(doc,'RECHNUNG',i.invoice_number);
+  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.text('Rechnung an:',20,45); doc.setFont('helvetica','normal'); doc.text(pdfSafe([c?.first_name,c?.last_name].filter(Boolean).join(' ')||c?.company_name||'Kunde'),20,52); doc.text(pdfSafe(customerAddress(c)),20,59);
+  doc.text(`Rechnungsdatum: ${formatDate(i.invoice_date)}`,190,45,{align:'right'}); if(i.due_date)doc.text(`Fällig: ${formatDate(i.due_date)}`,190,52,{align:'right'});
+  if(ord){doc.setFont('helvetica','bold');doc.text('Veranstaltung',20,72);doc.setFont('helvetica','normal');doc.text(pdfSafe(`${ord.event_type||'Event'} · ${formatDate(ord.event_date)}`),20,79);doc.text(pdfSafe(ord.event_location||''),20,86);}
+  doc.autoTable({startY:95,head:[['Leistung','Menge','Einzelpreis netto','Netto','USt','Brutto']],body:items.map(x=>[pdfSafe(x.description),String(x.quantity),formatMoney(x.unit_price_net),formatMoney(x.net_amount),formatMoney(x.vat_amount),formatMoney(x.gross_amount)]),styles:{fontSize:9},headStyles:{fontStyle:'bold'}});
+  let y=(doc.lastAutoTable?.finalY||100)+12; doc.setFontSize(10);doc.setFont('helvetica','normal');doc.text(`Netto: ${formatMoney(i.subtotal_net)}`,190,y,{align:'right'});y+=7;doc.text(`Umsatzsteuer: ${formatMoney(i.vat_amount)}`,190,y,{align:'right'});y+=8;doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(`Gesamt: ${formatMoney(i.total_gross)}`,190,y,{align:'right'});y+=8;doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text(`Offen: ${formatMoney(i.amount_open)}`,190,y,{align:'right'});
+  if(i.notes){y+=14;doc.text('Hinweise:',20,y);y+=6;doc.text(doc.splitTextToSize(pdfSafe(i.notes),170),20,y);}
+  doc.setFontSize(8);doc.text('Erstellt mit RuhrGeBeats.',20,285); return {doc,filename:`${i.invoice_number||'Rechnung'}.pdf`,record:i,customer:c};
+}
+async function downloadInvoicePdf(id){try{const x=await buildInvoicePdf(id);x.doc.save(x.filename);notify('Rechnung als PDF erstellt.')}catch(e){console.error(e);notify(e.message,'error')}}
+
+async function sendDocumentEmail(type,id){
+  try{
+    notify('E-Mail wird gesendet …');
+    const x=type==='offer'?await buildOfferPdf(id):await buildInvoicePdf(id);
+    const token=(await rbsupabase.auth.getSession()).data.session?.access_token;
+    if(!token)throw new Error('Nicht angemeldet.');
+    const to=x.customer?.email; if(!to)throw new Error('Beim Kunden ist keine E-Mail-Adresse hinterlegt.');
+    const base64=x.doc.output('datauristring').split(',')[1];
+    const subject=type==='offer'?`Dein Angebot ${x.record.offer_number||''} von RuhrGeBeats`:`Deine Rechnung ${x.record.invoice_number||''} von RuhrGeBeats`;
+    const html=type==='offer'?`<p>Hallo,</p><p>anbei erhältst du unser Angebot <strong>${escapeHtml(x.record.offer_number||'')}</strong>.</p><p>Viele Grüße<br>RuhrGeBeats GbR</p>`:`<p>Hallo,</p><p>anbei erhältst du die Rechnung <strong>${escapeHtml(x.record.invoice_number||'')}</strong>.</p><p>Viele Grüße<br>RuhrGeBeats GbR</p>`;
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/send-document-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({to,subject,html,filename:x.filename,pdf_base64:base64})});
+    const data=await res.json().catch(()=>({})); if(!res.ok)throw new Error(data.error||data.message||`E-Mail-Fehler (${res.status})`);
+    if(type==='offer') await dbUpdate('offers',id,{status:'sent'}); else await dbUpdate('invoices',id,{status:'sent'});
+    notify('E-Mail wurde versendet.'); type==='offer'?await viewOffer(id):await viewInvoice(id);
+  }catch(e){console.error(e);notify(e.message,'error')}
+}
+
+/* Override offer view with PDF + real email actions */
+window.viewOffer=async function(id){
+  const {data:o,error}=await rbsupabase.from('offers').select('*').eq('id',id).single();if(error)return notify(error.message,'error');
+  const items=(await rbsupabase.from('offer_items').select('*').eq('offer_id',id).order('sort_order')).data||[];
+  const c=await getCustomerForDocument(o.customer_id); const mid=openDynamicModal(`Angebot ${o.offer_number||''}`,`<p>${statusBadge(o.status)}</p><p><strong>Kunde:</strong> ${escapeHtml([c?.first_name,c?.last_name].filter(Boolean).join(' ')||c?.company_name||'-')} · ${escapeHtml(c?.email||'Keine E-Mail')}</p><table><thead><tr><th>Leistung</th><th>Menge</th><th>Netto</th><th>Brutto</th></tr></thead><tbody>${items.map(x=>`<tr><td>${escapeHtml(x.description)}</td><td>${x.quantity}</td><td>${formatMoney(x.net_amount)}</td><td>${formatMoney(x.gross_amount)}</td></tr>`).join('')}</tbody></table><hr><p><strong>Netto:</strong> ${formatMoney(o.subtotal_net)} · <strong>USt:</strong> ${formatMoney(o.vat_amount)} · <strong>Brutto:</strong> ${formatMoney(o.total_gross)}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="downloadOfferPdf('${id}')">📄 PDF</button><button class="btn btn-primary" onclick="sendDocumentEmail('offer','${id}')">✉️ PDF per E-Mail senden</button><button class="btn" onclick="setOfferStatus('${id}','sent');closeDynamicModal('${mid}')">Als versendet markieren</button><button class="btn btn-primary" onclick="acceptOffer('${id}');closeDynamicModal('${mid}')">Angebot annehmen</button></div>`);
+};
+
+/* Override invoices */
+window.renderInvoices=async function(){
+ const rows=await safeSelect('invoices',q=>q.order('invoice_date',{ascending:false}));const cs=await safeSelect('customers');const cm=Object.fromEntries(cs.map(c=>[c.id,customerName(c)]));
+ document.getElementById('internalContent').innerHTML=`<div class="page-header"><div><h1>Rechnungen</h1><p>${rows.length} Rechnungen</p></div></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Nummer</th><th>Kunde</th><th>Datum</th><th>Fällig</th><th>Brutto</th><th>Offen</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(i=>`<tr><td>${escapeHtml(i.invoice_number||'-')}</td><td>${escapeHtml(cm[i.customer_id]||'-')}</td><td>${formatDate(i.invoice_date)}</td><td>${formatDate(i.due_date)}</td><td>${formatMoney(i.total_gross)}</td><td>${formatMoney(i.amount_open)}</td><td>${statusBadge(i.status)}</td><td><button class="small-btn primary" onclick="viewInvoice('${i.id}')">Öffnen</button></td></tr>`).join('')||'<tr><td colspan="8">Keine Rechnungen.</td></tr>'}</tbody></table></div></div>`;
+};
+window.viewInvoice=async function(id){const {data:i,error}=await rbsupabase.from('invoices').select('*').eq('id',id).single();if(error)return notify(error.message,'error');const items=(await rbsupabase.from('invoice_items').select('*').eq('invoice_id',id).order('sort_order')).data||[];const c=await getCustomerForDocument(i.customer_id);const mid=openDynamicModal(`Rechnung ${i.invoice_number||''}`,`<p>${statusBadge(i.status)}</p><p><strong>Kunde:</strong> ${escapeHtml([c?.first_name,c?.last_name].filter(Boolean).join(' ')||c?.company_name||'-')} · ${escapeHtml(c?.email||'Keine E-Mail')}</p><table><thead><tr><th>Leistung</th><th>Menge</th><th>Netto</th><th>Brutto</th></tr></thead><tbody>${items.map(x=>`<tr><td>${escapeHtml(x.description)}</td><td>${x.quantity}</td><td>${formatMoney(x.net_amount)}</td><td>${formatMoney(x.gross_amount)}</td></tr>`).join('')}</tbody></table><hr><p><strong>Gesamt:</strong> ${formatMoney(i.total_gross)} · <strong>Bezahlt:</strong> ${formatMoney(i.amount_paid)} · <strong>Offen:</strong> ${formatMoney(i.amount_open)}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="downloadInvoicePdf('${id}')">📄 PDF</button><button class="btn btn-primary" onclick="sendDocumentEmail('invoice','${id}')">✉️ PDF per E-Mail senden</button><button class="btn" onclick="recordPayment('${id}');closeDynamicModal('${mid}')">💶 Zahlung erfassen</button></div>`)};
+window.recordPayment=async function(invoiceId){const i=(await rbsupabase.from('invoices').select('*').eq('id',invoiceId).single()).data;if(!i)return;return modalForm('Zahlung erfassen',()=>[formInput('Datum','payment_date',todayISO(),'date','required'),formInput('Betrag','amount',i.amount_open||0,'number','step=0.01','required'),formSelect('Zahlungsart','payment_method','bank',[['bank','Bank'],['cash','Bar'],['other','Sonstiges']]),formInput('Referenz','reference')],async f=>{const amount=Number(f.get('amount'));await dbInsert('payments',{invoice_id:invoiceId,order_id:i.order_id,payment_date:f.get('payment_date'),amount,payment_method:f.get('payment_method'),reference:f.get('reference')||null});const paid=Number(i.amount_paid||0)+amount;const open=Math.max(0,Number(i.total_gross||0)-paid);await dbUpdate('invoices',invoiceId,{amount_paid:paid,amount_open:open,status:open<=0?'paid':'sent'});notify('Zahlung erfasst');await renderInvoices()})};
+
+/* ===== PUBLIC WEBSITE CONTENT ===== */
+const RB_PUBLIC_KEYS={
+ hero_label:'hero_label',hero_title:'hero_title',hero_text:'hero_text',leistungen_title:'leistungen_title',leistungen_text:'leistungen_text',ablauf_title:'ablauf_title',ablauf_text:'ablauf_text',kontakt_title:'kontakt_title',kontakt_text:'kontakt_text',footer_text:'footer_text'
+};
+const RB_PUBLIC_DEFAULTS={hero_label:'🎧 Mobiler DJ aus dem Ruhrgebiet',hero_title:'Deine Party.\nDein Sound.',hero_text:'RuhrGeBeats bringt Musik, Licht und Stimmung zu deiner Veranstaltung. Professioneller mobiler DJ für Geburtstage, Hochzeiten und private Events in NRW.',leistungen_title:'Was wir mitbringen',leistungen_text:'Wir kümmern uns nicht nur um die Musik. Von der Planung bis zum letzten Song soll deine Veranstaltung möglichst unkompliziert für dich laufen.',ablauf_title:'So läuft es ab',ablauf_text:'Von der ersten Anfrage bis zum letzten Song behalten wir den Überblick.',kontakt_title:'Bereit für deine Party?',kontakt_text:'Erzähl uns kurz von deiner Veranstaltung. Wir melden uns anschließend bei dir.',footer_text:'Mobiler DJ im Ruhrgebiet & NRW'};
+async function loadPublicContent(){
+ try{const rows=await safeSelect('website_content',q=>q);if(!rows.length)return;const m=Object.fromEntries(rows.map(r=>[r.key,r.value]));
+  const set=(sel,val,multi=false)=>{const el=document.querySelector(sel);if(el&&val!=null){if(multi)el.innerHTML=escapeHtml(val).replace(/\n/g,'<br>');else el.textContent=val}};
+  set('.hero-label',m.hero_label); set('.hero h1',m.hero_title,true); set('.hero-content>p',m.hero_text); set('#leistungen .section-title',m.leistungen_title); set('#leistungen .section-subtitle',m.leistungen_text); set('#ablauf .section-title',m.ablauf_title); set('#ablauf .section-subtitle',m.ablauf_text); set('#kontakt h2',m.kontakt_title); set('#kontakt p',m.kontakt_text); const fp=document.querySelector('footer .footer-inner>div:first-child p'); if(fp)fp.textContent=m.footer_text||fp.textContent;
+ }catch(e){console.warn('website_content nicht verfügbar',e)}
+}
+const origInitApp=window.initApp;
+window.initApp=async function(){const p=new URLSearchParams(location.search);if(!p.get('music'))await loadPublicContent();return origInitApp();};
+
+function websiteContentFields(d={}){return[formInput('Interner Schlüssel *','key',d.key,'text','required'),formInput('Bezeichnung','label',d.label||''),formArea('Text / Inhalt','value',d.value||'')];}
+window.editPublicContent=async function(key){const r=await rbsupabase.from('website_content').select('*').eq('key',key).maybeSingle();if(r.error)return notify(r.error.message,'error');return modalForm('Website-Text bearbeiten',()=>[formInput('Schlüssel','key',r.data?.key||key,'text','required'),formInput('Bezeichnung','label',r.data?.label||''),formArea('Text / Inhalt','value',r.data?.value||RB_PUBLIC_DEFAULTS[key]||'')],async f=>{const obj={key:f.get('key'),label:f.get('label')||f.get('key'),value:f.get('value')||''};if(r.data)return dbUpdate('website_content',r.data.id,obj);return dbInsert('website_content',obj)} ,r.data||{key,label:key,value:RB_PUBLIC_DEFAULTS[key]||''})};
+window.renderWebsite=async function(){
+ const [news,fb,contentRows]=await Promise.all([safeSelect('website_news',q=>q.order('sort_order').order('published_at',{ascending:false})),safeSelect('feedback',q=>q.order('created_at',{ascending:false})),safeSelect('website_content',q=>q.order('key'))]);
+ document.getElementById('internalContent').innerHTML=`<div class="page-header"><div><h1>🌐 Website verwalten</h1><p>Öffentliche Texte, News und Bewertungen bearbeiten.</p></div><button class="btn btn-primary" onclick="newNewsModal()">+ News</button></div><div class="dashboard-section"><h2>Öffentliche Texte</h2><p style="color:#64748b">Änderungen werden nach dem Speichern auf der öffentlichen Website geladen.</p><div class="table-wrap"><table><thead><tr><th>Bereich</th><th>Text</th><th></th></tr></thead><tbody>${Object.keys(RB_PUBLIC_DEFAULTS).map(k=>{const r=contentRows.find(x=>x.key===k);return `<tr><td><strong>${escapeHtml(r?.label||k)}</strong><br><small>${escapeHtml(k)}</small></td><td>${escapeHtml((r?.value||RB_PUBLIC_DEFAULTS[k]).slice(0,140))}${(r?.value||RB_PUBLIC_DEFAULTS[k]).length>140?'…':''}</td><td><button class="small-btn primary" onclick="editPublicContent('${k}')">Bearbeiten</button></td></tr>`}).join('')}</tbody></table></div></div><div class="dashboard-section"><h2>News</h2><div class="table-wrap"><table><thead><tr><th>Titel</th><th>Veröffentlicht</th><th>Datum</th><th></th></tr></thead><tbody>${news.map(n=>`<tr><td>${escapeHtml(n.title)}</td><td>${n.published?'Ja':'Nein'}</td><td>${formatDateTime(n.published_at)}</td><td><button class="small-btn" onclick="editNews('${n.id}')">Öffnen</button></td></tr>`).join('')||'<tr><td colspan="4">Keine News.</td></tr>'}</tbody></table></div></div><div class="dashboard-section"><h2>Bewertungen</h2>${fb.map(x=>`<div class="calendar-event"><div><strong>${'★'.repeat(Number(x.rating||0))}</strong><br>${escapeHtml(x.comment||'')}<br><small>${x.approved?'freigegeben':'nicht freigegeben'} ${x.published?'· veröffentlicht':''}</small></div><div><button class="small-btn" onclick="moderateFeedback('${x.id}',true,true)">Freigeben</button><button class="small-btn" onclick="moderateFeedback('${x.id}',false,false)">Verbergen</button></div></div>`).join('')||'Kein Feedback.'}</div>`;
+};
+
+/* ===== FINANCE: full working overview ===== */
+const RB_FIN_TABLES=['bank_accounts','bank_transactions','expenses','cashbook_entries','shareholder_accounts','tax_entries','financial_documents'];
+const RB_FIN_LABELS={bank_accounts:'Bankkonten',bank_transactions:'Banktransaktionen',expenses:'Ausgaben',cashbook_entries:'Kassenbuch',shareholder_accounts:'Gesellschafterkonten',tax_entries:'Steuereinträge',financial_documents:'Finanzdokumente'};
+const RB_FIN_COLS={bank_accounts:['name','account_type','bank_name','iban','opening_balance'],bank_transactions:['transaction_date','description','amount','transaction_type','matched'],expenses:['expense_date','description','supplier','net_amount','vat_amount','gross_amount','category'],cashbook_entries:['entry_date','description','entry_type','amount','category'],shareholder_accounts:['profile_id','entry_date','entry_type','amount','description'],tax_entries:['entry_date','tax_year','tax_type','amount','description'],financial_documents:['document_type','file_name','document_date','description']};
+window.deleteFinanceRow=async function(table,id){if(!confirm('Eintrag wirklich löschen?'))return;const {error}=await rbsupabase.from(table).delete().eq('id',id);if(error)return notify(error.message,'error');notify('Eintrag gelöscht');await renderFinance()};
+window.financeModal=async function(table,id=null){
+ let d={}; if(id){const r=await rbsupabase.from(table).select('*').eq('id',id).single();if(r.error)return notify(r.error.message,'error');d=r.data}
+ let fields=FINANCE_FIELDS[table]; if(table==='bank_transactions'){const ba=await safeSelect('bank_accounts');fields=x=>[formSelect('Bankkonto *','bank_account_id',x.bank_account_id||'', [['','Bitte wählen'],...ba.map(b=>[b.id,b.name])]),formInput('Datum *','transaction_date',x.transaction_date||todayISO(),'date','required'),formInput('Beschreibung','description',x.description||''),formInput('Betrag','amount',x.amount||0,'number','step=0.01'),formSelect('Typ *','transaction_type',x.transaction_type||'income',[['income','Einnahme'],['expense','Ausgabe'],['transfer','Transfer']]),formInput('Kategorie','category',x.category||''),formSelect('Abgeglichen','matched',String(x.matched??false),[['true','Ja'],['false','Nein']]),formInput('Referenz','reference',x.reference||''),formArea('Notizen','notes',x.notes||'')]};
+ if(table==='financial_documents')fields=x=>[formInput('Dokumenttyp *','document_type',x.document_type||'','text','required'),formInput('Dateiname *','file_name',x.file_name||'','text','required'),formInput('Dateipfad *','file_path',x.file_path||'','text','required'),formInput('Datum','document_date',x.document_date||'','date'),formArea('Beschreibung','description',x.description||'')];
+ if(table==='shareholder_accounts'){const ps=await safeSelect('profiles');fields=x=>[formSelect('Gesellschafter *','profile_id',x.profile_id||'',[['','Bitte wählen'],...ps.map(p=>[p.id,[p.first_name,p.last_name].filter(Boolean).join(' ')||p.id])]),formInput('Datum *','entry_date',x.entry_date||todayISO(),'date','required'),formSelect('Typ','entry_type',x.entry_type||'contribution',[['contribution','Einlage'],['withdrawal','Entnahme'],['expense','Ausgabe']]),formInput('Betrag','amount',x.amount||0,'number','step=0.01'),formInput('Beschreibung *','description',x.description||'','text','required'),formInput('Referenz','reference',x.reference||'')]}
+ return modalForm((id?'Bearbeiten: ':'Neu: ')+RB_FIN_LABELS[table],fields,async f=>{const obj=Object.fromEntries(f.entries());for(const k of ['opening_balance','net_amount','vat_rate','vat_amount','gross_amount','amount','tax_year'])if(obj[k]!==undefined)obj[k]=Number(obj[k]);if(obj.active!==undefined)obj.active=obj.active==='true';if(obj.matched!==undefined)obj.matched=obj.matched==='true';if(id)return dbUpdate(table,id,obj);return dbInsert(table,obj)},d);
+};
+function rbFinTable(title,table,rows,cols){return `<div class="dashboard-section"><div class="page-header" style="margin-bottom:10px"><div><h2>${title}</h2><p>${rows.length} Einträge</p></div><button class="small-btn primary" onclick="financeModal('${table}')">+ Hinzufügen</button></div><div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}<th></th></tr></thead><tbody>${rows.slice(0,100).map(r=>`<tr>${cols.map(c=>`<td>${c.includes('amount')||c.includes('balance')?formatMoney(r[c]):c.includes('date')?formatDate(r[c]):c==='matched'?(r[c]?'Ja':'Nein'):escapeHtml(r[c]??'')}</td>`).join('')}<td><button class="small-btn" onclick="financeModal('${table}','${r.id}')">Bearbeiten</button> <button class="small-btn" onclick="deleteFinanceRow('${table}','${r.id}')">Löschen</button></td></tr>`).join('')||`<tr><td colspan="${cols.length+1}">Keine Einträge.</td></tr>`}</tbody></table></div></div>`}
+window.renderFinance=async function(){
+ const [inv,pay,exp,tx,ba,cash,sh,tax,fd]=await Promise.all(['invoices','payments','expenses','bank_transactions','bank_accounts','cashbook_entries','shareholder_accounts','tax_entries','financial_documents'].map(safeSelect));
+ const invoicedNet=inv.reduce((s,x)=>s+Number(x.subtotal_net||0),0), outputVat=inv.reduce((s,x)=>s+Number(x.vat_amount||0),0), received=pay.reduce((s,x)=>s+Number(x.amount||0),0), expNet=exp.reduce((s,x)=>s+Number(x.net_amount||0),0), inputVat=exp.reduce((s,x)=>s+Number(x.vat_amount||0),0), open=inv.reduce((s,x)=>s+Number(x.amount_open||0),0);
+ document.getElementById('internalContent').innerHTML=`<div class="page-header"><div><h1>🔒 Finanzen & Verwaltung</h1><p>Finanzübersicht, Buchungen, Steuern und EÜR-Auswertung.</p></div></div><div class="finance-warning"><strong>Interne Verwaltung:</strong> Die Zahlen unterstützen eure Arbeit, ersetzen aber keine steuerliche Prüfung oder GoBD-Buchhaltungssoftware.</div><div class="metric-grid"><div class="metric"><div class="metric-label">Rechnungen netto</div><div class="metric-value">${formatMoney(invoicedNet)}</div></div><div class="metric"><div class="metric-label">Zahlungseingänge</div><div class="metric-value">${formatMoney(received)}</div></div><div class="metric"><div class="metric-label">Offene Forderungen</div><div class="metric-value">${formatMoney(open)}</div></div><div class="metric"><div class="metric-label">Ausgaben netto</div><div class="metric-value">${formatMoney(expNet)}</div></div><div class="metric"><div class="metric-label">USt aus Rechnungen</div><div class="metric-value">${formatMoney(outputVat)}</div></div><div class="metric"><div class="metric-label">Vorsteuer aus Ausgaben</div><div class="metric-value">${formatMoney(inputVat)}</div></div></div><div class="dashboard-section"><h2>📊 Steuer-/EÜR-Übersicht</h2><div class="table-wrap"><table><tbody><tr><td>Einnahmen aus erfassten Zahlungen</td><td>${formatMoney(received)}</td></tr><tr><td>Ausgaben netto</td><td>${formatMoney(expNet)}</td></tr><tr><td>Vereinfachter Überschuss vor weiteren Korrekturen</td><td><strong>${formatMoney(received-expNet)}</strong></td></tr><tr><td>Umsatzsteuer aus Rechnungen</td><td>${formatMoney(outputVat)}</td></tr><tr><td>Vorsteuer aus erfassten Ausgaben</td><td>${formatMoney(inputVat)}</td></tr><tr><td>Differenz USt/Vorsteuer</td><td><strong>${formatMoney(outputVat-inputVat)}</strong></td></tr></tbody></table></div></div>${rbFinTable('🏦 Bankkonten','bank_accounts',ba,RB_FIN_COLS.bank_accounts)}${rbFinTable('💳 Banktransaktionen','bank_transactions',tx,RB_FIN_COLS.bank_transactions)}${rbFinTable('🧾 Ausgaben & Belege','expenses',exp,RB_FIN_COLS.expenses)}${rbFinTable('💶 Kassenbuch','cashbook_entries',cash,RB_FIN_COLS.cashbook_entries)}${rbFinTable('👥 Gesellschafterkonten','shareholder_accounts',sh,RB_FIN_COLS.shareholder_accounts)}${rbFinTable('🏛️ Steuern','tax_entries',tax,RB_FIN_COLS.tax_entries)}${rbFinTable('📁 Finanzdokumente','financial_documents',fd,RB_FIN_COLS.financial_documents)}`;
+};
+
+/* Add PDF/email buttons to offer/invoice creation views through the existing functions after DOM load. */
+
 </script>
 </body>
 </html>
