@@ -1462,793 +1462,184 @@
  document.head.appendChild(s);
 })();
 </script>
-
 <script>
 /* ============================================================
-   RUHRGEBEATS – MANAGEMENT SYSTEM
-   ============================================================ */
-
-/* Supabase-Verbindung
-   WICHTIG: Die beiden Werte aus deiner bisherigen index.html hier
-   unverändert übernehmen. Niemals einen Service-Role-/Secret-Key
-   verwenden.
-*/
+   RUHRGEBEATS – INTEGRATED MANAGEMENT SYSTEM
+   Uses only the existing Supabase schema.
+   Browser-safe: publishable key only, never service role.
+============================================================ */
 const SUPABASE_URL = "https://wnvgnfdnexfzjgqelfko.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_oIW_qHboJ7WMZwJDIEs9kg_kNs_enl3";
+const rbsupabase = window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let currentUser=null,currentProfile=null,currentCustomer=null,currentInternalPage="dashboard",modalCounter=0;
 
-const rbsupabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
-
-let currentUser = null;
-let currentProfile = null;
-let currentCustomer = null;
-let currentInternalPage = "dashboard";
-let modalCounter = 0;
-
-const TABLE_LABELS = {
-  customers:"Kunden", inquiries:"Anfragen", orders:"Aufträge", events:"Kalender",
-  equipment:"Equipment", order_equipment:"Auftrag-Equipment", music_requests:"Musikwünsche",
-  tasks:"Aufgaben", offers:"Angebote", offer_items:"Angebotspositionen",
-  invoices:"Rechnungen", invoice_items:"Rechnungspositionen", payments:"Zahlungen",
-  bank_accounts:"Bankkonten", bank_transactions:"Banktransaktionen", expenses:"Ausgaben",
-  cashbook_entries:"Kassenbuch", shareholder_accounts:"Gesellschafterkonten",
-  tax_entries:"Steuern", financial_documents:"Finanzdokumente", website_news:"News",
-  feedback:"Feedback", documents:"Dokumente", audit_log:"Audit-Log"
+const LABELS={customers:"Kunden",inquiries:"Anfragen",orders:"Aufträge",events:"Kalender",equipment:"Equipment",music_requests:"Musikwünsche",tasks:"Aufgaben",offers:"Angebote",invoices:"Rechnungen",payments:"Zahlungen",bank_accounts:"Bankkonten",bank_transactions:"Banktransaktionen",expenses:"Ausgaben",cashbook_entries:"Kassenbuch",shareholder_accounts:"Gesellschafterkonten",tax_entries:"Steuern",financial_documents:"Finanzdokumente",website_news:"News",feedback:"Feedback",audit_log:"Audit-Log"};
+const SCHEMA={
+ customers:["id","user_id","first_name","last_name","company_name","email","phone","street","house_number","postal_code","city","country","notes","created_at","updated_at"],
+ inquiries:["id","customer_id","orderer_name","contact_person","phone","email","orderer_street","orderer_house_number","orderer_postal_code","orderer_city","event_date","event_location","guest_count","event_type","birthday_reinfeiern","existing_music","existing_lighting","existing_internet","existing_other","required_music","required_lighting","required_fog","required_other","earliest_setup_time","music_wishes","dj_play_time_minutes","special_notes","status","created_at","updated_at"],
+ orders:["id","customer_id","inquiry_id","order_number","status","event_date","event_start_time","event_end_time","setup_start_time","event_type","event_location","guest_count","music_wishes","special_notes","created_at","updated_at"],
+ events:["id","order_id","title","description","start_time","end_time","location","event_type","created_at","updated_at"],
+ equipment:["id","name","category","manufacturer","model","serial_number","photo_url","acquisition_date","acquisition_price_net","vat_rate","acquisition_price_gross","location","condition","status","description","notes","created_at","updated_at"],
+ music_requests:["id","order_id","song_title","artist","spotify_url","guest_note","status","requested_at","played_at"],
+ tasks:["id","order_id","title","description","assigned_to","due_date","priority","status","created_at","completed_at"],
+ offers:["id","order_id","customer_id","offer_number","issue_date","valid_until","status","subtotal_net","vat_amount","total_gross","notes","created_at","updated_at"],
+ offer_items:["id","offer_id","description","quantity","unit_price_net","vat_rate","net_amount","vat_amount","gross_amount","sort_order"],
+ invoices:["id","order_id","customer_id","invoice_number","invoice_date","due_date","status","subtotal_net","vat_amount","total_gross","amount_paid","amount_open","notes","created_at","updated_at"],
+ invoice_items:["id","invoice_id","description","quantity","unit_price_net","vat_rate","net_amount","vat_amount","gross_amount","sort_order"],
+ payments:["id","invoice_id","order_id","payment_date","amount","payment_method","reference","notes","created_at"],
+ bank_accounts:["id","name","account_type","iban","bank_name","opening_balance","active","notes","created_at","updated_at"],
+ bank_transactions:["id","bank_account_id","transaction_date","description","amount","transaction_type","invoice_id","payment_id","category","matched","reference","notes","created_at"],
+ expenses:["id","expense_date","description","supplier","net_amount","vat_rate","vat_amount","gross_amount","category","payment_method","bank_transaction_id","receipt_file_path","notes","created_at","updated_at"],
+ cashbook_entries:["id","entry_date","description","entry_type","amount","category","receipt_number","notes","created_at"],
+ shareholder_accounts:["id","profile_id","entry_date","entry_type","amount","description","reference","created_at"],
+ tax_entries:["id","entry_date","tax_year","tax_type","amount","description","reference","created_at"],
+ financial_documents:["id","document_type","file_path","file_name","document_date","description","expense_id","created_at"],
+ website_news:["id","title","slug","excerpt","content","published","published_at","sort_order","created_at","updated_at"],
+ feedback:["id","customer_id","order_id","rating","comment","display_consent","approved","published","created_at","updated_at"]
 };
-
-function escapeHtml(value){
-  if(value===null || value===undefined) return "";
-  return String(value).replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-}
-function formatDate(v){
-  if(!v) return "-";
-  const d=new Date(v+"T00:00:00");
-  return isNaN(d) ? escapeHtml(v) : d.toLocaleDateString("de-DE");
-}
-function formatDateTime(v){
-  if(!v) return "-";
-  const d=new Date(v);
-  return isNaN(d) ? escapeHtml(v) : d.toLocaleString("de-DE");
-}
-function formatMoney(v){
-  return Number(v||0).toLocaleString("de-DE",{style:"currency",currency:"EUR"});
-}
-function todayISO(){
-  return new Date().toISOString().slice(0,10);
-}
-function addDays(dateString, days){
-  const d=new Date(dateString+"T00:00:00");
-  d.setDate(d.getDate()+days);
-  return d.toISOString().slice(0,10);
-}
-function getStatusClass(status){
-  const s=String(status||"").toLowerCase();
-  if(["bezahlt","abgeschlossen","gebucht","akzeptiert","accepted","erledigt","played","freigegeben"].some(x=>s.includes(x))) return "status-success";
-  if(["fällig","planung","angebot","offen","neu","draft","versendet","sent","in_planung","later"].some(x=>s.includes(x))) return "status-warning";
-  if(["überfällig","defekt","abgelehnt","rejected","storniert"].some(x=>s.includes(x))) return "status-danger";
-  return "status-info";
-}
-function statusBadge(status){
-  return `<span class="status ${getStatusClass(status)}">${escapeHtml(status||"unbekannt")}</span>`;
-}
-function errorBox(error){
-  return `<div class="dashboard-section"><div style="padding:16px;background:#fee2e2;color:#991b1b;border-radius:10px;">
-    <strong>Fehler:</strong> ${escapeHtml(error?.message||error||"Unbekannter Fehler")}
-  </div></div>`;
-}
-async function safeSelect(table, queryFn){
-  let q=rbsupabase.from(table).select("*");
-  if(queryFn) q=queryFn(q);
-  const {data,error}=await q;
-  if(error){ console.error(table,error); return []; }
-  return data||[];
-}
-function notify(message, type="success"){
-  let el=document.getElementById("rbToast");
-  if(!el){
-    el=document.createElement("div"); el.id="rbToast";
-    el.style.cssText="position:fixed;right:20px;bottom:20px;z-index:30000;max-width:420px;padding:14px 18px;border-radius:12px;background:#111827;color:#fff;box-shadow:0 15px 40px rgba(0,0,0,.25);font-weight:700;";
-    document.body.appendChild(el);
-  }
-  el.textContent=message;
-  el.style.background=type==="error"?"#991b1b":type==="warning"?"#92400e":"#166534";
-  clearTimeout(el._timer); el._timer=setTimeout(()=>el.remove(),3500);
-}
-function closeDynamicModal(id){
-  const el=document.getElementById(id); if(el) el.remove();
-}
-function openDynamicModal(title, body, opts={}){
-  const id="rbModal_"+(++modalCounter);
-  const overlay=document.createElement("div");
-  overlay.id=id; overlay.className="modal-overlay";
-  overlay.innerHTML=`<div class="modal" style="width:min(${opts.width||"1000px"},100%);">
-    <div class="modal-header">
-      <div><h2 style="margin:0">${escapeHtml(title)}</h2>${opts.subtitle?`<p style="margin:5px 0 0;color:#64748b">${escapeHtml(opts.subtitle)}</p>`:""}</div>
-      <button class="close" onclick="closeDynamicModal('${id}')">✕</button>
-    </div>
-    <div>${body}</div>
-  </div>`;
-  document.body.appendChild(overlay);
-  return id;
-}
-function getGreeting(){
-  const h=new Date().getHours();
-  return h<11?"Guten Morgen":h<18?"Guten Tag":"Guten Abend";
-}
-function customerName(c){
-  if(!c) return "Kunde";
-  return [c.first_name,c.last_name].filter(Boolean).join(" ") || c.company_name || c.email || "Kunde";
-}
-function inquiryName(i){ return i?.orderer_name || i?.contact_person || i?.email || "Anfrage"; }
-function techText(i, prefix){
-  const out=[];
-  if(i?.[prefix+"_music"]) out.push("Musik");
-  if(i?.[prefix+"_lighting"]) out.push("Licht");
-  if(prefix==="required" && i?.required_fog) out.push("Nebel");
-  if(i?.[prefix+"_internet"]) out.push("Internet");
-  if(i?.[prefix+"_other"]) out.push(i[prefix+"_other"]);
-  return out.join(", ")||"-";
-}
-function cell(v,key){
-  if(v===null||v===undefined||v==="") return "-";
-  if(key.includes("amount")||key.includes("price")||key==="net_amount"||key==="vat_amount"||key==="gross_amount"||key==="opening_balance") return formatMoney(v);
-  if(key.endsWith("_date")||key==="date"||key==="event_date"||key==="issue_date"||key==="valid_until"||key==="due_date") return formatDate(v);
-  if(key.endsWith("_at")) return formatDateTime(v);
-  if(key==="status"||key==="entry_type"||key==="payment_method") return statusBadge(v);
-  if(typeof v==="boolean") return v?"Ja":"Nein";
-  if(typeof v==="object") return escapeHtml(JSON.stringify(v));
-  return escapeHtml(v);
-}
+function escapeHtml(v){return v==null?"":String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;");}
+function formatDate(v){if(!v)return "-";const d=new Date(String(v).length===10?v+"T00:00:00":v);return isNaN(d)?escapeHtml(v):d.toLocaleDateString("de-DE");}
+function formatDateTime(v){if(!v)return "-";const d=new Date(v);return isNaN(d)?escapeHtml(v):d.toLocaleString("de-DE");}
+function formatMoney(v){return Number(v||0).toLocaleString("de-DE",{style:"currency",currency:"EUR"});}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function addDays(s,n){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+function customerName(c){return c?[c.company_name||[c.first_name,c.last_name].filter(Boolean).join(" "),c.company_name&&[c.first_name,c.last_name].filter(Boolean).join(" ")].filter(Boolean).join(" – ")||c.email||"Kunde":"Kunde"}
+function inquiryName(i){return i?.orderer_name||i?.contact_person||i?.email||"Anfrage"}
+function statusClass(s){s=String(s||"").toLowerCase();if(["bezahlt","gebucht","akzeptiert","accepted","erledigt","completed","played","published","freigegeben"].some(x=>s.includes(x)))return"status-success";if(["neu","angebot","offen","draft","sent","versendet","planung","later","open","erstellt","fällig"].some(x=>s.includes(x)))return"status-warning";if(["abgelehnt","rejected","überfällig","defekt","storniert"].some(x=>s.includes(x)))return"status-danger";return"status-info"}
+function statusBadge(s){return`<span class="status ${statusClass(s)}">${escapeHtml(s||"-")}</span>`}
+function notify(msg,type="success"){let e=document.getElementById("rbToast");if(!e){e=document.createElement("div");e.id="rbToast";e.style.cssText="position:fixed;right:20px;bottom:20px;z-index:50000;max-width:430px;padding:14px 18px;border-radius:12px;background:#166534;color:white;box-shadow:0 15px 40px rgba(0,0,0,.25);font-weight:700";document.body.appendChild(e)}e.textContent=msg;e.style.background=type==="error"?"#991b1b":type==="warning"?"#92400e":"#166534";clearTimeout(e._t);e._t=setTimeout(()=>e.remove(),3500)}
+function errorBox(e){return`<div class="dashboard-section"><div style="padding:16px;background:#fee2e2;color:#991b1b;border-radius:10px"><strong>Fehler:</strong> ${escapeHtml(e?.message||e||"Unbekannter Fehler")}</div></div>`}
+async function safeSelect(table,fn){let q=rbsupabase.from(table).select("*");if(fn)q=fn(q);const {data,error}=await q;if(error){console.error(table,error);return []}return data||[]}
+async function dbInsert(table,payload){const {data,error}=await rbsupabase.from(table).insert(payload).select().single();if(error)throw error;return data}
+async function dbUpdate(table,id,payload){const {data,error}=await rbsupabase.from(table).update(payload).eq("id",id).select().single();if(error)throw error;return data}
+async function dbDelete(table,id){const {error}=await rbsupabase.from(table).delete().eq("id",id);if(error)throw error}
+function openDynamicModal(title,body,width="1000px"){const id="rbModal_"+(++modalCounter),o=document.createElement("div");o.id=id;o.className="modal-overlay";o.innerHTML=`<div class="modal" style="width:min(${width},100%)"><div class="modal-header"><h2 style="margin:0">${escapeHtml(title)}</h2><button class="close" onclick="closeDynamicModal('${id}')">✕</button></div><div>${body}</div></div>`;document.body.appendChild(o);return id}
+function closeDynamicModal(id){document.getElementById(id)?.remove()}
+function closeAllDynamicModals(){document.querySelectorAll('[id^="rbModal_"]').forEach(x=>x.remove())}
+function formInput(label,name,value="",type="text",extra=""){return`<div class="form-group"><label>${escapeHtml(label)}</label><input name="${name}" type="${type}" value="${escapeHtml(value??"")}" ${extra}></div>`}
+function formArea(label,name,value=""){return`<div class="form-group full"><label>${escapeHtml(label)}</label><textarea name="${name}">${escapeHtml(value??"")}</textarea></div>`}
+function formSelect(label,name,value,opts){return`<div class="form-group"><label>${escapeHtml(label)}</label><select name="${name}">${opts.map(x=>`<option value="${escapeHtml(x[0])}" ${String(value??"")===String(x[0])?"selected":""}>${escapeHtml(x[1])}</option>`).join("")}</select></div>`}
+function modalForm(title,fields,submit,initial={},width="1000px"){const mid=openDynamicModal(title,`<form id="rbForm" class="form-grid">${fields(initial).join("")}<div class="form-group full" style="display:flex;justify-content:flex-end;gap:10px"><button type="button" class="btn" onclick="closeDynamicModal('${mid}')">Abbrechen</button><button class="btn btn-primary">Speichern</button></div></form>`,width);document.getElementById("rbForm").onsubmit=async e=>{e.preventDefault();try{await submit(new FormData(e.target));closeDynamicModal(mid);notify("Gespeichert");await openInternalPage(currentInternalPage)}catch(err){console.error(err);notify(err.message||String(err),"error")}};return mid}
 
 /* ---------- PUBLIC ---------- */
-function showInquiryForm(){document.getElementById("inquiryModal").classList.remove("hidden");}
-function closeInquiryForm(){document.getElementById("inquiryModal").classList.add("hidden");}
-function openLogin(){document.getElementById("loginModal").classList.remove("hidden");}
-function closeLogin(){document.getElementById("loginModal").classList.add("hidden");}
-function showPublicSite(){
-  document.getElementById("internalApp").classList.add("hidden");
-  document.getElementById("customerPortal").classList.add("hidden");
-  document.getElementById("publicSite").classList.remove("hidden");
-}
-function openMusicRequestPage(orderId){
-  document.getElementById("publicSite").classList.add("hidden");
-  document.getElementById("customerPortal").classList.add("hidden");
-  document.getElementById("internalApp").classList.add("hidden");
-  let box=document.getElementById("musicPublicPage");
-  if(!box){
-    box=document.createElement("div"); box.id="musicPublicPage"; document.body.appendChild(box);
-  }
-  box.className="form-container";
-  box.innerHTML=`<div class="form-card"><div class="page-header"><div>
-    <h1>🎵 Musikwunsch</h1><p style="color:#64748b">Wünsch dir einen Song für die Veranstaltung.</p>
-  </div></div><form id="musicPublicForm"><div class="form-grid">
-    <div class="form-group"><label>Song *</label><input id="guestSong" required></div>
-    <div class="form-group"><label>Künstler</label><input id="guestArtist"></div>
-    <div class="form-group full"><label>Spotify-Link (optional)</label><input id="guestSpotify" type="url"></div>
-    <div class="form-group full"><label>Hinweis an den DJ</label><textarea id="guestNote" placeholder="z. B. bitte später spielen …"></textarea></div>
-  </div><button class="btn btn-primary" type="submit">Musikwunsch senden</button><div id="musicPublicMessage" style="margin-top:14px"></div></form></div>`;
-  document.getElementById("musicPublicForm").addEventListener("submit",async e=>{
-    e.preventDefault();
-    const msg=document.getElementById("musicPublicMessage"); msg.textContent="Wird gesendet …";
-    const {error}=await rbsupabase.from("music_requests").insert({
-      order_id:orderId,song_title:document.getElementById("guestSong").value.trim(),
-      artist:document.getElementById("guestArtist").value.trim()||null,
-      spotify_url:document.getElementById("guestSpotify").value.trim()||null,
-      guest_note:document.getElementById("guestNote").value.trim()||null,status:"open"
-    });
-    if(error){msg.style.color="#b91c1c";msg.textContent="Der Musikwunsch konnte nicht gesendet werden: "+error.message;return;}
-    e.target.reset(); msg.style.color="#15803d"; msg.textContent="Danke! Dein Musikwunsch wurde gesendet.";
-  });
-}
-async function loadPublicNews(){
-  const box=document.getElementById("publicNews"); if(!box) return;
-  const {data,error}=await rbsupabase.from("website_news").select("*").eq("published",true)
-    .order("sort_order",{ascending:true}).order("published_at",{ascending:false});
-  if(error||!data?.length) return;
-  box.innerHTML=data.map(n=>`<div class="news-card">${n.published_at?`<div class="news-date">${formatDateTime(n.published_at)}</div>`:""}
-    <h3>${escapeHtml(n.title)}</h3><p>${escapeHtml(n.excerpt||n.content||"")}</p>
-    ${n.content&&n.excerpt&&n.content!==n.excerpt?`<details><summary>Mehr lesen</summary><p>${escapeHtml(n.content)}</p></details>`:""}
-  </div>`).join("");
-}
-
-/* Inquiry mapping exactly to current DB */
-document.getElementById("inquiryForm").addEventListener("submit",async function(e){
-  e.preventDefault();
-  const form=e.target, msg=document.getElementById("inquiryMessage");
-  msg.style.color="#64748b"; msg.textContent="Anfrage wird gesendet …";
-  const fd=new FormData(form);
-  const vals=(name)=>[...form.querySelectorAll(`input[name="${name}"]:checked`)].map(x=>x.value);
-  const existing=vals("existing_tech"), required=vals("required_tech");
-  const rawPlay=String(fd.get("dj_play_time")||"").trim();
-  const playMatch=rawPlay.match(/\d+/);
-  const inquiry={
-    orderer_name:String(fd.get("order_name")||"").trim()||null,
-    contact_person:String(fd.get("contact_person")||"").trim()||null,
-    phone:String(fd.get("phone")||"").trim()||null,
-    email:String(fd.get("email")||"").trim()||null,
-    orderer_street:String(fd.get("street")||"").trim()||null,
-    orderer_house_number:String(fd.get("house_number")||"").trim()||null,
-    orderer_postal_code:String(fd.get("postal_code")||"").trim()||null,
-    orderer_city:String(fd.get("city")||"").trim()||null,
-    event_date:fd.get("event_date")||null,event_location:String(fd.get("event_location")||"").trim()||null,
-    guest_count:fd.get("guest_count")?Number(fd.get("guest_count")):null,
-    event_type:fd.get("event_type")||null,
-    birthday_reinfeiern:fd.get("reinfeiern")==="Ja"?true:fd.get("reinfeiern")==="Nein"?false:null,
-    existing_music:existing.includes("Musik"),existing_lighting:existing.includes("Licht"),
-    existing_internet:existing.includes("Internet"),existing_other:existing.includes("Sonstiges")?"Sonstiges":null,
-    required_music:required.includes("Musik"),required_lighting:required.includes("Licht"),
-    required_fog:required.includes("Nebel"),required_other:required.includes("Sonstiges")?"Sonstiges":null,
-    earliest_setup_time:fd.get("earliest_setup_time")||null,
-    music_wishes:String(fd.get("music_wishes")||"").trim()||null,
-    dj_play_time_minutes:playMatch?Number(playMatch[0]):null,
-    special_notes:String(fd.get("special_notes")||"").trim()||null,status:"neu"
-  };
-  const {error}=await rbsupabase.from("inquiries").insert(inquiry);
-  if(error){msg.style.color="#b91c1c";msg.textContent="Die Anfrage konnte nicht gespeichert werden: "+error.message;return;}
-  form.reset();msg.style.color="#15803d";msg.textContent="Vielen Dank! Deine Anfrage wurde erfolgreich übermittelt.";
-  setTimeout(()=>{closeInquiryForm();msg.textContent="";},2500);
-});
+function showPublicSite(){document.getElementById("publicSite")?.classList.remove("hidden");document.getElementById("internalApp")?.classList.add("hidden");document.getElementById("customerPortal")?.classList.add("hidden")}
+function showInquiryForm(){document.getElementById("inquiryModal")?.classList.remove("hidden")}
+function closeInquiryForm(){document.getElementById("inquiryModal")?.classList.add("hidden")}
+function openLogin(){document.getElementById("loginModal")?.classList.remove("hidden");document.getElementById("loginMessage").textContent=""}
+function closeLogin(){document.getElementById("loginModal")?.classList.add("hidden")}
+function checked(name){return[...document.querySelectorAll(`#inquiryForm input[name="${name}"]:checked`)].map(x=>x.value)}
+async function submitInquiry(e){e.preventDefault();const f=new FormData(e.target),existing=checked("existing_tech"),required=checked("required_tech");const p={orderer_name:f.get("order_name")||"",contact_person:f.get("contact_person")||null,phone:f.get("phone")||null,email:f.get("email")||null,orderer_street:f.get("street")||null,orderer_house_number:f.get("house_number")||null,orderer_postal_code:f.get("postal_code")||null,orderer_city:f.get("city")||null,event_date:f.get("event_date")||null,event_location:f.get("event_location")||null,guest_count:f.get("guest_count")?Number(f.get("guest_count")):null,event_type:f.get("event_type")||null,birthday_reinfeiern:f.get("reinfeiern")==="Ja"?true:f.get("reinfeiern")==="Nein"?false:null,existing_music:existing.includes("Musik"),existing_lighting:existing.includes("Licht"),existing_internet:existing.includes("Internet"),existing_other:existing.includes("Sonstiges")?"Sonstiges":null,required_music:required.includes("Musik"),required_lighting:required.includes("Licht"),required_fog:required.includes("Nebel"),required_other:required.includes("Sonstiges")?"Sonstiges":null,earliest_setup_time:f.get("earliest_setup_time")||null,music_wishes:f.get("music_wishes")||null,dj_play_time_minutes:parseMinutes(f.get("dj_play_time")),special_notes:f.get("special_notes")||null,status:"neu"};const {error}=await rbsupabase.from("inquiries").insert(p);const m=document.getElementById("inquiryMessage");if(error){console.error(error);m.textContent="Fehler beim Senden: "+error.message;m.style.color="#b91c1c"}else{m.textContent="Vielen Dank! Deine Anfrage wurde gesendet.";m.style.color="#15803d";e.target.reset();setTimeout(closeInquiryForm,1200)}}
+function parseMinutes(v){if(!v)return null;const m=String(v).match(/(\d+)\s*(?:h|std)?/i);return m?Number(m[1])*60:null}
+async function loadPublicNews(){const rows=await safeSelect("website_news",q=>q.eq("published",true).order("sort_order").order("published_at",{ascending:false}));const el=document.getElementById("publicNews");if(el)el.innerHTML=rows.length?rows.map(n=>`<article class="dashboard-section"><h3>${escapeHtml(n.title)}</h3><p>${escapeHtml(n.excerpt||n.content||"")}</p><small>${formatDateTime(n.published_at||n.created_at)}</small></article>`).join(""):"<p>Noch keine News.</p>"}
+function openMusicRequestPage(orderId){showPublicSite();document.getElementById("musicPublicPage")?.remove();const d=document.createElement("div");d.id="musicPublicPage";d.style.cssText="max-width:700px;margin:80px auto;padding:25px";d.innerHTML=`<div class="dashboard-section"><h1>🎵 Musikwunsch</h1><p>Wünsch dir einen Song für die Veranstaltung.</p><form id="musicPublicForm" class="form-grid">${formInput("Songtitel *","song_title","","text","required")}${formInput("Interpret","artist")}${formInput("Spotify-Link","spotify_url","","url")}${formArea("Hinweis","guest_note")}<div class="form-group full"><button class="btn btn-primary">Wunsch senden</button></div></form><div id="musicMsg"></div></div>`;document.body.appendChild(d);document.getElementById("musicPublicForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{await dbInsert("music_requests",{order_id:orderId,song_title:f.get("song_title"),artist:f.get("artist")||null,spotify_url:f.get("spotify_url")||null,guest_note:f.get("guest_note")||null,status:"open"});document.getElementById("musicMsg").innerHTML="<p style='color:#15803d'>Danke! Dein Musikwunsch wurde übermittelt.</p>";e.target.reset()}catch(err){document.getElementById("musicMsg").innerHTML=errorBox(err)}}}
 
 /* ---------- AUTH ---------- */
-document.getElementById("loginForm").addEventListener("submit",async function(e){
-  e.preventDefault();
-  const msg=document.getElementById("loginMessage");msg.textContent="Anmeldung läuft …";msg.style.color="#64748b";
-  const {data,error}=await rbsupabase.auth.signInWithPassword({
-    email:document.getElementById("loginEmail").value.trim(),
-    password:document.getElementById("loginPassword").value
-  });
-  if(error){msg.textContent="Anmeldung fehlgeschlagen.";msg.style.color="#b91c1c";console.error(error);return;}
-  currentUser=data.user; msg.textContent="Erfolgreich angemeldet.";msg.style.color="#15803d";
-  await routeLoggedInUser();
-});
-async function routeLoggedInUser(){
-  const {data:{user}}=await rbsupabase.auth.getUser();
-  if(!user){showPublicSite();return;}
-  currentUser=user;
-  const {data:profile,error}=await rbsupabase.from("profiles").select("*").eq("id",user.id).maybeSingle();
-  if(error){alert("Das Benutzerprofil konnte nicht geladen werden.");console.error(error);return;}
-  currentProfile=profile;
-  closeLogin();
-  if(profile?.role==="internal") await showInternalApp(user,profile);
-  else await showCustomerPortal(user,profile);
-}
-async function logout(){
-  await rbsupabase.auth.signOut();
-  currentUser=null;currentProfile=null;currentCustomer=null;
-  const mp=document.getElementById("musicPublicPage"); if(mp) mp.remove();
-  showPublicSite();window.scrollTo(0,0);
-}
-async function initApp(){
-  const params=new URLSearchParams(location.search);
-  if(params.get("music")){openMusicRequestPage(params.get("music"));return;}
-  const {data:{session}}=await rbsupabase.auth.getSession();
-  if(session) await routeLoggedInUser(); else {await loadPublicNews();}
-}
-rbsupabase.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT") showPublicSite();});
+async function routeLoggedInUser(){const {data:{user}}=await rbsupabase.auth.getUser();if(!user){showPublicSite();return}currentUser=user;const {data:profile,error}=await rbsupabase.from("profiles").select("*").eq("id",user.id).maybeSingle();if(error){notify(error.message,"error");return}currentProfile=profile;closeLogin();if(profile?.role==="internal")await showInternalApp(user,profile);else await showCustomerPortal(user,profile)}
+async function logout(){await rbsupabase.auth.signOut();currentUser=null;currentProfile=null;currentCustomer=null;showPublicSite()}
+async function initApp(){const p=new URLSearchParams(location.search);if(p.get("music")){openMusicRequestPage(p.get("music"));return}const {data:{session}}=await rbsupabase.auth.getSession();if(session)await routeLoggedInUser();else{showPublicSite();await loadPublicNews()}}
+document.getElementById("loginForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("loginMessage");const {error}=await rbsupabase.auth.signInWithPassword({email:document.getElementById("loginEmail").value,password:document.getElementById("loginPassword").value});if(error){m.textContent=error.message;m.style.color="#b91c1c"}else{m.textContent="Anmeldung erfolgreich.";m.style.color="#15803d";await routeLoggedInUser()}});
+document.getElementById("inquiryForm")?.addEventListener("submit",submitInquiry);
+rbsupabase.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showPublicSite()});
 
 /* ---------- INTERNAL NAV ---------- */
-async function showInternalApp(user,profile){
-  document.getElementById("publicSite").classList.add("hidden");
-  document.getElementById("customerPortal").classList.add("hidden");
-  document.getElementById("internalApp").classList.remove("hidden");
-  document.getElementById("internalUserName").textContent=
-    [profile?.first_name,profile?.last_name].filter(Boolean).join(" ")||user.email||"Mitarbeiter";
-  await openInternalPage("dashboard");
-}
-async function openInternalPage(page){
-  currentInternalPage=page;
-  document.querySelectorAll(".side-button").forEach(b=>b.classList.remove("active"));
-  const titles={dashboard:"Dashboard",inquiries:"Anfragen",orders:"Aufträge",customers:"Kunden",calendar:"Kalender",
-    equipment:"Equipment",music:"Musikwünsche",tasks:"Aufgaben",documents:"Dokumente",offers:"Angebote",
-    invoices:"Rechnungen",website:"Website / News",settings:"Einstellungen",finance:"Finanzen & Verwaltung"};
-  document.getElementById("internalPageTitle").textContent=titles[page]||"RuhrGeBeats";
-  const content=document.getElementById("internalContent");
-  content.innerHTML=`<div class="loading">Lade ${escapeHtml(titles[page]||page)} …</div>`;
-  const active=[...document.querySelectorAll(".side-button")].find(b=>b.getAttribute("onclick")?.includes(`'${page}'`));
-  if(active) active.classList.add("active");
-  try{
-    switch(page){
-      case"dashboard":await renderDashboard();break;case"inquiries":await renderInquiries();break;
-      case"orders":await renderOrders();break;case"customers":await renderCustomers();break;case"calendar":await renderCalendar();break;
-      case"equipment":await renderEquipment();break;case"music":await renderMusic();break;case"tasks":await renderTasks();break;
-      case"documents":await renderDocuments();break;case"offers":await renderOffers();break;case"invoices":await renderInvoices();break;
-      case"website":await renderWebsite();break;case"settings":await renderSettings();break;case"finance":await renderFinance();break;
-      default:content.innerHTML="<div class='empty'>Bereich nicht gefunden.</div>";
-    }
-  }catch(err){console.error(err);content.innerHTML=errorBox(err);}
-}
-
-/* ---------- DASHBOARD ---------- */
-async function renderDashboard(){
-  const [inq,orders,customers,events,tasks,invoices]=await Promise.all([
-    safeSelect("inquiries"),safeSelect("orders"),safeSelect("customers"),safeSelect("events"),safeSelect("tasks"),safeSelect("invoices")
-  ]);
-  const openInq=inq.filter(x=>!["abgelehnt","abgeschlossen","archiviert"].includes(String(x.status).toLowerCase()));
-  const upcoming=events.filter(x=>x.start_time&&new Date(x.start_time)>=new Date()).sort((a,b)=>new Date(a.start_time)-new Date(b.start_time)).slice(0,6);
-  const openTasks=tasks.filter(x=>!["completed","erledigt","done"].includes(String(x.status).toLowerCase()));
-  const openInvoices=invoices.filter(x=>Number(x.amount_open||0)>0);
-  document.getElementById("internalContent").innerHTML=`
-    <div class="page-header"><div><h1>${getGreeting()} 👋</h1><p style="color:#64748b;margin:0">RuhrGeBeats Management-System</p></div></div>
-    <div class="dashboard-grid">
-      <div class="dash-card" onclick="openInternalPage('inquiries')"><div class="dash-icon">📥</div><h3>Anfragen</h3><p>${openInq.length} offene Anfragen</p></div>
-      <div class="dash-card" onclick="openInternalPage('orders')"><div class="dash-icon">📋</div><h3>Aufträge</h3><p>${orders.length} Aufträge</p></div>
-      <div class="dash-card" onclick="openInternalPage('customers')"><div class="dash-icon">👥</div><h3>Kunden</h3><p>${customers.length} Kunden</p></div>
-      <div class="dash-card" onclick="openInternalPage('calendar')"><div class="dash-icon">📅</div><h3>Kalender</h3><p>${upcoming.length} kommende Termine</p></div>
-      <div class="dash-card" onclick="openInternalPage('tasks')"><div class="dash-icon">✅</div><h3>Aufgaben</h3><p>${openTasks.length} offene Aufgaben</p></div>
-      <div class="dash-card" onclick="openInternalPage('offers')"><div class="dash-icon">📝</div><h3>Angebote</h3><p>Angebote verwalten</p></div>
-      <div class="dash-card" onclick="openInternalPage('invoices')"><div class="dash-icon">🧾</div><h3>Rechnungen</h3><p>${openInvoices.length} offene Rechnungen</p></div>
-      <div class="dash-card" onclick="openInternalPage('equipment')"><div class="dash-icon">💡</div><h3>Equipment</h3><p>Technik & Verfügbarkeit</p></div>
-    </div>
-    <div class="dashboard-section"><h2>Neue Anfragen</h2>
-      ${openInq.length?`<div class="table-wrap"><table><thead><tr><th>Auftraggeber</th><th>Datum</th><th>Art</th><th>Status</th><th></th></tr></thead><tbody>
-      ${openInq.slice(0,8).map(i=>`<tr><td><strong>${escapeHtml(inquiryName(i))}</strong><br><small>${escapeHtml(i.email||"")}</small></td><td>${formatDate(i.event_date)}</td><td>${escapeHtml(i.event_type||"-")}</td><td>${statusBadge(i.status)}</td><td><button class="small-btn primary" onclick="showInquiryDetailById('${i.id}')">Öffnen</button></td></tr>`).join("")}
-      </tbody></table></div>`:`<div class="empty">Keine offenen Anfragen.</div>`}
-    </div>
-    <div class="dashboard-section"><h2>Nächste Veranstaltungen</h2>
-      ${upcoming.length?`<div class="table-wrap"><table><thead><tr><th>Datum</th><th>Titel</th><th>Ort</th><th>Start</th></tr></thead><tbody>
-      ${upcoming.map(e=>`<tr><td>${formatDateTime(e.start_time)}</td><td>${escapeHtml(e.title)}</td><td>${escapeHtml(e.location||"-")}</td><td>${e.end_time?formatDateTime(e.end_time):"-"}</td></tr>`).join("")}
-      </tbody></table></div>`:`<div class="empty">Keine kommenden Veranstaltungen.</div>`}
-    </div>`;
-}
+async function showInternalApp(user,profile){document.getElementById("publicSite").classList.add("hidden");document.getElementById("customerPortal").classList.add("hidden");document.getElementById("internalApp").classList.remove("hidden");document.getElementById("internalUserName").textContent=[profile?.first_name,profile?.last_name].filter(Boolean).join(" ")||user.email||"Mitarbeiter";await openInternalPage("dashboard")}
+async function openInternalPage(page){currentInternalPage=page;document.querySelectorAll(".side-button").forEach(x=>x.classList.remove("active"));const b=[...document.querySelectorAll(".side-button")].find(x=>x.getAttribute("onclick")?.includes(`'${page}'`));if(b)b.classList.add("active");const titles={dashboard:"Dashboard",inquiries:"Anfragen",orders:"Aufträge",customers:"Kunden",calendar:"Kalender",equipment:"Equipment",music:"Musikwünsche",tasks:"Aufgaben",documents:"Dokumente",offers:"Angebote",invoices:"Rechnungen",website:"Website / News",settings:"Einstellungen",finance:"Finanzen & Verwaltung"};document.getElementById("internalPageTitle").textContent=titles[page]||"RuhrGeBeats";document.getElementById("internalContent").innerHTML='<div class="loading">Lade …</div>';try{const fn={dashboard:renderDashboard,inquiries:renderInquiries,orders:renderOrders,customers:renderCustomers,calendar:renderCalendar,equipment:renderEquipment,music:renderMusic,tasks:renderTasks,documents:renderDocuments,offers:renderOffers,invoices:renderInvoices,website:renderWebsite,settings:renderSettings,finance:renderFinance}[page];if(fn)await fn();else document.getElementById("internalContent").innerHTML=errorBox("Bereich nicht gefunden")}catch(e){console.error(e);document.getElementById("internalContent").innerHTML=errorBox(e)}}
+function getGreeting(){const h=new Date().getHours();return h<11?"Guten Morgen":h<18?"Guten Tag":"Guten Abend"}
+async function renderDashboard(){const [i,o,c,e,t,inv]=await Promise.all([safeSelect("inquiries"),safeSelect("orders"),safeSelect("customers"),safeSelect("events"),safeSelect("tasks"),safeSelect("invoices")]);const open=i.filter(x=>!['abgelehnt','abgeschlossen','archiviert'].includes(String(x.status).toLowerCase()));const upcoming=e.filter(x=>x.start_time&&new Date(x.start_time)>=new Date()).sort((a,b)=>new Date(a.start_time)-new Date(b.start_time)).slice(0,5);document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>${getGreeting()} 👋</h1><p style="color:#64748b">RuhrGeBeats Management-System</p></div></div><div class="dashboard-grid"><div class="dash-card" onclick="openInternalPage('inquiries')"><h3>📥 Anfragen</h3><p>${open.length} offen</p></div><div class="dash-card" onclick="openInternalPage('orders')"><h3>📋 Aufträge</h3><p>${o.length}</p></div><div class="dash-card" onclick="openInternalPage('customers')"><h3>👥 Kunden</h3><p>${c.length}</p></div><div class="dash-card" onclick="openInternalPage('calendar')"><h3>📅 Termine</h3><p>${upcoming.length} kommend</p></div><div class="dash-card" onclick="openInternalPage('tasks')"><h3>✅ Aufgaben</h3><p>${t.filter(x=>x.status!=="completed").length} offen</p></div><div class="dash-card" onclick="openInternalPage('invoices')"><h3>🧾 Rechnungen</h3><p>${inv.filter(x=>Number(x.amount_open)>0).length} offen</p></div></div><div class="dashboard-section"><h2>Nächste Termine</h2>${upcoming.length?upcoming.map(x=>`<div class="calendar-event"><div><strong>${escapeHtml(x.title)}</strong><br>${formatDateTime(x.start_time)} · ${escapeHtml(x.location||"")}</div></div>`).join(""):"Keine kommenden Termine."}</div><div class="dashboard-section"><h2>Neue Anfragen</h2>${open.slice(0,8).map(x=>`<div class="calendar-event"><div><strong>${escapeHtml(inquiryName(x))}</strong><br>${formatDate(x.event_date)} · ${escapeHtml(x.event_type||"")}</div><button class="small-btn primary" onclick="showInquiryDetailById('${x.id}')">Öffnen</button></div>`).join("")||"Keine offenen Anfragen."}</div>`}
 
 /* ---------- INQUIRIES ---------- */
-async function renderInquiries(){
-  const {data,error}=await rbsupabase.from("inquiries").select("*").order("created_at",{ascending:false});
-  if(error){document.getElementById("internalContent").innerHTML=errorBox(error);return;}
-  const rows=data||[];
-  document.getElementById("internalContent").innerHTML=`
-    <div class="page-header"><div><h1>Anfragen</h1><p style="color:#64748b">${rows.length} Anfragen</p></div><button class="btn btn-primary" onclick="showInquiryForm()">+ Neue Anfrage</button></div>
-    <div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Auftraggeber</th><th>Kontakt</th><th>Datum</th><th>Art</th><th>Gäste</th><th>Status</th><th></th></tr></thead><tbody>
-    ${rows.length?rows.map(i=>`<tr><td><strong>${escapeHtml(inquiryName(i))}</strong><br><small>${escapeHtml(i.email||"")}</small></td>
-    <td>${escapeHtml(i.contact_person||"-")}<br>${escapeHtml(i.phone||"-")}</td><td>${formatDate(i.event_date)}</td><td>${escapeHtml(i.event_type||"-")}</td>
-    <td>${escapeHtml(i.guest_count||"-")}</td><td>${statusBadge(i.status)}</td><td><button class="small-btn primary" onclick="showInquiryDetailById('${i.id}')">Öffnen</button></td></tr>`).join(""):`<tr><td colspan="7"><div class="empty">Keine Anfragen.</div></td></tr>`}
-    </tbody></table></div></div>`;
-}
-async function showInquiryDetailById(id){
-  const {data,error}=await rbsupabase.from("inquiries").select("*").eq("id",id).single();
-  if(error){notify(error.message,"error");return;} showInquiryDetail(data);
-}
-function showInquiryDetail(i){
-  const existing=document.getElementById("detailModal");if(existing)existing.remove();
-  const body=`<div class="dashboard-section">
-    <div class="detail-grid">
-      <div><h3>Kontaktdaten</h3><p><strong>Auftraggeber:</strong> ${escapeHtml(i.orderer_name)}</p><p><strong>Ansprechpartner:</strong> ${escapeHtml(i.contact_person||"-")}</p><p><strong>E-Mail:</strong> ${escapeHtml(i.email||"-")}</p><p><strong>Telefon:</strong> ${escapeHtml(i.phone||"-")}</p>
-      <p><strong>Adresse:</strong> ${escapeHtml([i.orderer_street,i.orderer_house_number].filter(Boolean).join(" "))}<br>${escapeHtml([i.orderer_postal_code,i.orderer_city].filter(Boolean).join(" "))}</p></div>
-      <div><h3>Veranstaltung</h3><p><strong>Datum:</strong> ${formatDate(i.event_date)}</p><p><strong>Ort:</strong> ${escapeHtml(i.event_location||"-")}</p><p><strong>Art:</strong> ${escapeHtml(i.event_type||"-")}</p><p><strong>Gäste:</strong> ${escapeHtml(i.guest_count||"-")}</p><p><strong>Reinfeiern:</strong> ${i.birthday_reinfeiern===true?"Ja":i.birthday_reinfeiern===false?"Nein":"-"} </p><p><strong>Aufbau:</strong> ${escapeHtml(i.earliest_setup_time||"-")}</p></div>
-    </div><hr><h3>Technik</h3><p><strong>Vorhanden:</strong> ${escapeHtml(techText(i,"existing"))}</p><p><strong>Benötigt:</strong> ${escapeHtml(techText(i,"required"))}</p>
-    <h3>Musik & Ablauf</h3><p><strong>DJ-Spielzeit:</strong> ${escapeHtml(i.dj_play_time_minutes||"-")} Minuten</p><p><strong>Musikwünsche:</strong><br>${escapeHtml(i.music_wishes||"-")}</p><p><strong>Hinweise:</strong><br>${escapeHtml(i.special_notes||"-")}</p>
-    <p><strong>Status:</strong> ${statusBadge(i.status)}</p></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-      <button class="small-btn" onclick="updateInquiryStatus('${i.id}','kontakt')">Kontaktiert</button>
-      <button class="small-btn primary" onclick="createOfferFromInquiry('${i.id}')">📝 Angebot erstellen</button>
-      <button class="small-btn" onclick="createCustomerFromInquiry('${i.id}')">👤 Kunde anlegen</button>
-    </div>`;
-  openDynamicModal("Anfrage",body,{width:"900px"});
-}
-async function updateInquiryStatus(id,status){
-  const {error}=await rbsupabase.from("inquiries").update({status,updated_at:new Date().toISOString()}).eq("id",id);
-  if(error){notify(error.message,"error");return;}notify("Anfrage aktualisiert");if(currentInternalPage==="inquiries")renderInquiries();
-}
+async function renderInquiries(){const rows=await safeSelect("inquiries",q=>q.order("created_at",{ascending:false}));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Anfragen</h1><p style="color:#64748b">${rows.length} Anfragen</p></div></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Auftraggeber</th><th>Datum</th><th>Art</th><th>Gäste</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(i=>`<tr><td><strong>${escapeHtml(inquiryName(i))}</strong><br><small>${escapeHtml(i.email||"")}</small></td><td>${formatDate(i.event_date)}</td><td>${escapeHtml(i.event_type||"-")}</td><td>${i.guest_count??"-"}</td><td>${statusBadge(i.status)}</td><td><button class="small-btn primary" onclick="showInquiryDetailById('${i.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="6">Keine Anfragen.</td></tr>'}</tbody></table></div></div>`}
+async function showInquiryDetailById(id){const {data,error}=await rbsupabase.from("inquiries").select("*").eq("id",id).single();if(error)return notify(error.message,"error");showInquiryDetail(data)}
+function showInquiryDetail(i){const mid=openDynamicModal("Anfrage",`<div class="detail-grid"><div><h3>Auftraggeber</h3><p><strong>${escapeHtml(i.orderer_name)}</strong><br>${escapeHtml(i.contact_person||"")}<br>${escapeHtml(i.email||"")}<br>${escapeHtml(i.phone||"")}<br>${escapeHtml([i.orderer_street,i.orderer_house_number].filter(Boolean).join(" "))}<br>${escapeHtml([i.orderer_postal_code,i.orderer_city].filter(Boolean).join(" "))}</p></div><div><h3>Veranstaltung</h3><p>${formatDate(i.event_date)}<br>${escapeHtml(i.event_location||"")}<br>${escapeHtml(i.event_type||"")} · ${i.guest_count||"-"} Gäste<br>Aufbau ab ${escapeHtml(i.earliest_setup_time||"-")}</p></div></div><div class="dashboard-section"><h3>Technik & Musik</h3><p>Vorhanden: ${[i.existing_music&&"Musik",i.existing_lighting&&"Licht",i.existing_internet&&"Internet",i.existing_other].filter(Boolean).join(", ")||"keine Angaben"}</p><p>Benötigt: ${[i.required_music&&"Musik",i.required_lighting&&"Licht",i.required_fog&&"Nebel",i.required_other].filter(Boolean).join(", ")||"keine Angaben"}</p><p>${escapeHtml(i.music_wishes||"")}</p><p>${escapeHtml(i.special_notes||"")}</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="updateInquiryStatus('${i.id}','in_pruefung');closeDynamicModal('${mid}')">In Prüfung</button><button class="btn" onclick="updateInquiryStatus('${i.id}','kontakt');closeDynamicModal('${mid}')">Kontakt</button><button class="btn btn-primary" onclick="createOfferFromInquiry('${i.id}');closeDynamicModal('${mid}')">Angebot erstellen</button><button class="btn" onclick="createCustomerFromInquiry('${i.id}');closeDynamicModal('${mid}')">Kunde anlegen</button></div>`);}
+async function updateInquiryStatus(id,status){try{await dbUpdate("inquiries",id,{status});notify("Status aktualisiert");await renderInquiries()}catch(e){notify(e.message,"error")}}
+async function createCustomerFromInquiry(id){const {data:i,error}=await rbsupabase.from("inquiries").select("*").eq("id",id).single();if(error)throw error;const c=await dbInsert("customers",{first_name:i.orderer_name?.split(" ")[0]||null,last_name:i.orderer_name?.split(" ").slice(1).join(" ")||null,email:i.email,phone:i.phone,street:i.orderer_street,house_number:i.orderer_house_number,postal_code:i.orderer_postal_code,city:i.orderer_city});await dbUpdate("inquiries",id,{customer_id:c.id});notify("Kunde angelegt")}
 
 /* ---------- CUSTOMERS ---------- */
-async function renderCustomers(){
-  const rows=await safeSelect("customers",q=>q.order("created_at",{ascending:false}));
-  document.getElementById("internalContent").innerHTML=`
-    <div class="page-header"><div><h1>Kunden</h1><p style="color:#64748b">${rows.length} Kunden</p></div><button class="btn btn-primary" onclick="newCustomerModal()">+ Kunde</button></div>
-    <div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Unternehmen</th><th>E-Mail</th><th>Telefon</th><th>Ort</th><th>Portal</th><th></th></tr></thead><tbody>
-    ${rows.length?rows.map(c=>`<tr><td><strong>${escapeHtml(customerName(c))}</strong></td><td>${escapeHtml(c.company_name||"-")}</td><td>${escapeHtml(c.email||"-")}</td><td>${escapeHtml(c.phone||"-")}</td><td>${escapeHtml([c.postal_code,c.city].filter(Boolean).join(" ")||"-")}</td><td>${c.user_id?statusBadge("verbunden"):statusBadge("kein Login")}</td><td><button class="small-btn primary" onclick="editCustomer('${c.id}')">Öffnen</button></td></tr>`).join(""):`<tr><td colspan="7"><div class="empty">Noch keine Kunden.</div></td></tr>`}
-    </tbody></table></div></div>`;
-}
-function customerForm(c={}){
- return `<form id="customerForm"><div class="form-grid">
- <div class="form-group"><label>Vorname</label><input name="first_name" value="${escapeHtml(c.first_name||"")}"></div>
- <div class="form-group"><label>Nachname</label><input name="last_name" value="${escapeHtml(c.last_name||"")}"></div>
- <div class="form-group"><label>Firma</label><input name="company_name" value="${escapeHtml(c.company_name||"")}"></div>
- <div class="form-group"><label>E-Mail</label><input name="email" type="email" value="${escapeHtml(c.email||"")}"></div>
- <div class="form-group"><label>Telefon</label><input name="phone" value="${escapeHtml(c.phone||"")}"></div>
- <div class="form-group"><label>Straße</label><input name="street" value="${escapeHtml(c.street||"")}"></div>
- <div class="form-group"><label>Hausnummer</label><input name="house_number" value="${escapeHtml(c.house_number||"")}"></div>
- <div class="form-group"><label>PLZ</label><input name="postal_code" value="${escapeHtml(c.postal_code||"")}"></div>
- <div class="form-group"><label>Ort</label><input name="city" value="${escapeHtml(c.city||"")}"></div>
- <div class="form-group"><label>Land</label><input name="country" value="${escapeHtml(c.country||"Deutschland")}"></div>
- <div class="form-group full"><label>Notizen</label><textarea name="notes">${escapeHtml(c.notes||"")}</textarea></div>
- </div><div style="display:flex;justify-content:flex-end;margin-top:18px"><button class="btn btn-primary">Speichern</button></div></form>`;
-}
-function newCustomerModal(){const id=openDynamicModal("Kunden anlegen",customerForm());document.getElementById("customerForm").onsubmit=e=>saveCustomer(e,null,id);}
-async function editCustomer(id){
- const {data,error}=await rbsupabase.from("customers").select("*").eq("id",id).single();if(error){notify(error.message,"error");return;}
- const mid=openDynamicModal("Kunde bearbeiten",customerForm(data));document.getElementById("customerForm").onsubmit=e=>saveCustomer(e,id,mid);
-}
-async function saveCustomer(e,id,mid){
- e.preventDefault();const f=new FormData(e.target), obj={};f.forEach((v,k)=>obj[k]=String(v).trim()||null);
- let res=id?await rbsupabase.from("customers").update(obj).eq("id",id).select().single():await rbsupabase.from("customers").insert(obj).select().single();
- if(res.error){notify(res.error.message,"error");return;}closeDynamicModal(mid);notify("Kunde gespeichert");renderCustomers();
-}
-async function createCustomerFromInquiry(inquiryId){
- const {data:i,error}=await rbsupabase.from("inquiries").select("*").eq("id",inquiryId).single();if(error){notify(error.message,"error");return;}
- const existing=i.customer_id?await rbsupabase.from("customers").select("*").eq("id",i.customer_id).maybeSingle():{data:null};
- if(existing.data){notify("Der Anfrage ist bereits ein Kunde zugeordnet","warning");return;}
- const {data:c,error:ce}=await rbsupabase.from("customers").insert({
-   first_name:i.orderer_name?.split(" ")[0]||null,last_name:i.orderer_name?.split(" ").slice(1).join(" ")||null,
-   email:i.email,phone:i.phone,street:i.orderer_street,house_number:i.orderer_house_number,postal_code:i.orderer_postal_code,city:i.orderer_city
- }).select().single();
- if(ce){notify(ce.message,"error");return;}
- await rbsupabase.from("inquiries").update({customer_id:c.id}).eq("id",i.id);
- notify("Kunde angelegt und Anfrage zugeordnet");showInquiryDetail({...i,customer_id:c.id});
-}
-
-/* ---------- OFFERS / BOOKING ---------- */
-function offerNumber(){return `ANG-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;}
-function invoiceNumber(){return `RG-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;}
-function offerItemRow(item={},idx=0){
- return `<tr data-offer-item><td><input class="oi-desc" value="${escapeHtml(item.description||"DJ-Leistung")}"></td>
- <td><input class="oi-qty" type="number" step="0.01" value="${Number(item.quantity||1)}"></td>
- <td><input class="oi-price" type="number" step="0.01" value="${Number(item.unit_price_net||0)}"></td>
- <td><input class="oi-vat" type="number" step="0.01" value="${Number(item.vat_rate??19)}"></td>
- <td class="oi-net">${formatMoney(item.net_amount||0)}</td><td class="oi-gross">${formatMoney(item.gross_amount||0)}</td>
- <td><button type="button" class="small-btn danger" onclick="this.closest('tr').remove();recalcLineItems()">✕</button></td></tr>`;
-}
-function itemEditor(items=[]){
- return `<div class="table-wrap"><table id="lineItemTable" style="min-width:800px"><thead><tr><th>Beschreibung</th><th>Menge</th><th>Netto/Einheit</th><th>USt %</th><th>Netto</th><th>Brutto</th><th></th></tr></thead>
- <tbody>${(items.length?items:[{}]).map(offerItemRow).join("")}</tbody></table></div>
- <button type="button" class="small-btn" style="margin-top:10px" onclick="document.querySelector('#lineItemTable tbody').insertAdjacentHTML('beforeend',offerItemRow({}))">+ Position</button>
- <div class="metric-grid" style="margin-top:15px"><div class="metric"><div class="metric-label">Netto</div><div class="metric-value" id="editorNet">0,00 €</div></div><div class="metric"><div class="metric-label">USt</div><div class="metric-value" id="editorVat">0,00 €</div></div><div class="metric"><div class="metric-label">Brutto</div><div class="metric-value" id="editorGross">0,00 €</div></div></div>`;
-}
-function recalcLineItems(){
- let net=0,vat=0,gross=0;
- document.querySelectorAll("#lineItemTable tbody tr").forEach(tr=>{
-   const q=Number(tr.querySelector(".oi-qty")?.value||0),p=Number(tr.querySelector(".oi-price")?.value||0),r=Number(tr.querySelector(".oi-vat")?.value||0);
-   const n=q*p,v=n*r/100,g=n+v;net+=n;vat+=v;gross+=g;
-   tr.querySelector(".oi-net").textContent=formatMoney(n);tr.querySelector(".oi-gross").textContent=formatMoney(g);
- });
- ["editorNet","editorVat","editorGross"].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=formatMoney([net,vat,gross][i]);});
- return {net,vat,gross};
-}
-document.addEventListener("input",e=>{if(e.target.closest("#lineItemTable"))recalcLineItems();});
-
-async function ensureOrderForInquiry(i){
- let order=null;
- if(i.customer_id){const r=await rbsupabase.from("orders").select("*").eq("inquiry_id",i.id).maybeSingle();order=r.data;}
- if(order) return order;
- let customerId=i.customer_id;
- if(!customerId){
-   const {data:c,error}=await rbsupabase.from("customers").insert({
-     first_name:i.orderer_name?.split(" ")[0]||null,last_name:i.orderer_name?.split(" ").slice(1).join(" ")||null,
-     email:i.email,phone:i.phone,street:i.orderer_street,house_number:i.orderer_house_number,postal_code:i.orderer_postal_code,city:i.orderer_city
-   }).select().single();
-   if(error) throw error;customerId=c.id;
-   const {error:ue}=await rbsupabase.from("inquiries").update({customer_id:customerId}).eq("id",i.id);if(ue)throw ue;
- }
- const {data:o,error}=await rbsupabase.from("orders").insert({
-   customer_id:customerId,inquiry_id:i.id,status:"angebot",event_date:i.event_date,
-   event_start_time:null,event_end_time:null,setup_start_time:i.earliest_setup_time,
-   event_type:i.event_type,event_location:i.event_location,guest_count:i.guest_count,
-   music_wishes:i.music_wishes,special_notes:i.special_notes
- }).select().single();
- if(error)throw error;return o;
-}
-async function createOfferFromInquiry(inquiryId){
- try{
-  const {data:i,error}=await rbsupabase.from("inquiries").select("*").eq("id",inquiryId).single();if(error)throw error;
-  const order=await ensureOrderForInquiry(i);
-  const mid=openDynamicModal("Angebot erstellen",`<form id="offerEditor">
-    <div class="form-grid"><div class="form-group"><label>Angebotsnummer</label><input name="offer_number" value="${offerNumber()}"></div>
-    <div class="form-group"><label>Gültig bis</label><input name="valid_until" type="date" value="${addDays(todayISO(),14)}"></div>
-    <div class="form-group full"><label>Hinweise</label><textarea name="notes" placeholder="Zahlungs-/Leistungshinweise …"></textarea></div></div>
-    <h3>Positionen</h3>${itemEditor([{description:"DJ-Leistung",quantity:1,unit_price_net:0,vat_rate:19}])}
-    <div style="display:flex;justify-content:flex-end;margin-top:20px"><button class="btn btn-primary">Angebot speichern</button></div>
-  </form>`,{width:"1100px"});
-  recalcLineItems();
-  document.getElementById("offerEditor").onsubmit=async e=>{
-   e.preventDefault();const totals=recalcLineItems(),f=new FormData(e.target);
-   const {data:offer,error:oe}=await rbsupabase.from("offers").insert({
-     order_id:order.id,customer_id:order.customer_id,offer_number:f.get("offer_number"),issue_date:todayISO(),valid_until:f.get("valid_until")||null,status:"draft",
-     subtotal_net:totals.net,vat_amount:totals.vat,total_gross:totals.gross,notes:f.get("notes")||null
-   }).select().single();if(oe){notify(oe.message,"error");return;}
-   const rows=[...document.querySelectorAll("#lineItemTable tbody tr")].map((tr,idx)=>{
-     const q=Number(tr.querySelector(".oi-qty").value||0),p=Number(tr.querySelector(".oi-price").value||0),r=Number(tr.querySelector(".oi-vat").value||0),n=q*p,v=n*r/100;
-     return {offer_id:offer.id,description:tr.querySelector(".oi-desc").value.trim()||"Position",quantity:q,unit_price_net:p,vat_rate:r,net_amount:n,vat_amount:v,gross_amount:n+v,sort_order:idx};
-   });
-   const {error:ie}=await rbsupabase.from("offer_items").insert(rows);if(ie){notify(ie.message,"error");return;}
-   await rbsupabase.from("inquiries").update({status:"angebot"}).eq("id",inquiryId);
-   closeDynamicModal(mid);notify("Angebot wurde erstellt");await renderOffers();
-  };
- }catch(err){notify(err.message||err,"error");}
-}
-async function renderOffers(){
- const offers=await safeSelect("offers",q=>q.order("created_at",{ascending:false}));
- const orders=await safeSelect("orders"),customers=await safeSelect("customers");
- const om=Object.fromEntries(orders.map(o=>[o.id,o])),cm=Object.fromEntries(customers.map(c=>[c.id,customerName(c)]));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Angebote</h1><p style="color:#64748b">${offers.length} Angebote</p></div></div>
- <div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Nummer</th><th>Kunde</th><th>Veranstaltung</th><th>Gültig bis</th><th>Brutto</th><th>Status</th><th></th></tr></thead><tbody>
- ${offers.length?offers.map(o=>`<tr><td>${escapeHtml(o.offer_number||"-")}</td><td>${escapeHtml(cm[o.customer_id]||"-")}</td><td>${formatDate(om[o.order_id]?.event_date)}</td><td>${formatDate(o.valid_until)}</td><td>${formatMoney(o.total_gross)}</td><td>${statusBadge(o.status)}</td><td><button class="small-btn primary" onclick="viewOffer('${o.id}')">Öffnen</button></td></tr>`).join(""):`<tr><td colspan="7"><div class="empty">Noch keine Angebote. Erstelle eines direkt aus einer Anfrage.</div></td></tr>`}
- </tbody></table></div></div>`;
-}
-async function viewOffer(id){
- const {data:o,error}=await rbsupabase.from("offers").select("*").eq("id",id).single();if(error){notify(error.message,"error");return;}
- const items=await safeSelect("offer_items",q=>q.eq("offer_id",id).order("sort_order"));
- const order=o.order_id?(await rbsupabase.from("orders").select("*").eq("id",o.order_id).single()).data:null;
- const body=`<div class="dashboard-section"><p><strong>Nummer:</strong> ${escapeHtml(o.offer_number||"-")}</p><p><strong>Status:</strong> ${statusBadge(o.status)}</p>
- <p><strong>Veranstaltung:</strong> ${formatDate(order?.event_date)} · ${escapeHtml(order?.event_type||"-")} · ${escapeHtml(order?.event_location||"-")}</p>
- <div class="table-wrap"><table><thead><tr><th>Position</th><th>Menge</th><th>Netto</th><th>USt</th><th>Brutto</th></tr></thead><tbody>
- ${items.map(x=>`<tr><td>${escapeHtml(x.description)}</td><td>${x.quantity}</td><td>${formatMoney(x.net_amount)}</td><td>${formatMoney(x.vat_amount)}</td><td>${formatMoney(x.gross_amount)}</td></tr>`).join("")}</tbody></table></div>
- <div style="text-align:right;margin-top:15px"><strong>Netto ${formatMoney(o.subtotal_net)} · USt ${formatMoney(o.vat_amount)} · Brutto ${formatMoney(o.total_gross)}</strong></div></div>
- <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="small-btn" onclick="setOfferStatus('${o.id}','sent')">Versendet</button>
- <button class="small-btn primary" onclick="acceptOffer('${o.id}')">✓ Angebot angenommen / buchen</button></div>`;
- openDynamicModal("Angebot",body,{width:"950px"});
-}
-async function setOfferStatus(id,status){const {error}=await rbsupabase.from("offers").update({status,updated_at:new Date().toISOString()}).eq("id",id);if(error)notify(error.message,"error");else{notify("Angebotsstatus aktualisiert");renderOffers();}}
-async function acceptOffer(offerId){
- try{
-  const {data:o,error}=await rbsupabase.from("offers").select("*").eq("id",offerId).single();if(error)throw error;
-  const {data:order,error:oe}=await rbsupabase.from("orders").select("*").eq("id",o.order_id).single();if(oe)throw oe;
-  await rbsupabase.from("offers").update({status:"accepted",updated_at:new Date().toISOString()}).eq("id",o.id);
-  await rbsupabase.from("orders").update({status:"gebucht",updated_at:new Date().toISOString()}).eq("id",order.id);
-  await rbsupabase.from("inquiries").update({status:"gebucht",updated_at:new Date().toISOString()}).eq("id",order.inquiry_id);
-  const start=order.event_date?(order.event_date+"T"+(order.event_start_time||"20:00:00")):new Date().toISOString();
-  const end=order.event_date&&order.event_end_time?(order.event_date+"T"+order.event_end_time):null;
-  const existing=await rbsupabase.from("events").select("*").eq("order_id",order.id).maybeSingle();
-  if(!existing.data){
-    const {error:ee}=await rbsupabase.from("events").insert({order_id:order.id,title:`${order.event_type||"Veranstaltung"} – ${order.event_location||"RuhrGeBeats"}`,description:order.special_notes||null,start_time:start,end_time:end,location:order.event_location||null,event_type:order.event_type||null});
-    if(ee)throw ee;
-  }
-  closeAllDynamicModals();notify("Auftrag wurde gebucht und Kalendertermin angelegt");renderOffers();
- }catch(err){notify(err.message||err,"error");}
-}
-function closeAllDynamicModals(){document.querySelectorAll("[id^='rbModal_'],#detailModal").forEach(x=>x.remove());}
+function customerFields(c={}){return[formInput("Vorname","first_name",c.first_name),formInput("Nachname","last_name",c.last_name),formInput("Firma","company_name",c.company_name),formInput("E-Mail","email",c.email,"email"),formInput("Telefon","phone",c.phone),formInput("Straße","street",c.street),formInput("Hausnummer","house_number",c.house_number),formInput("PLZ","postal_code",c.postal_code),formInput("Ort","city",c.city),formInput("Land","country",c.country||"Deutschland"),formArea("Notizen","notes",c.notes)]}
+function newCustomerModal(){return modalForm("Kunde anlegen",customerFields,async f=>dbInsert("customers",Object.fromEntries([...f.entries()].filter(([k])=>k!=="user_id"))))}
+async function editCustomer(id){const {data,error}=await rbsupabase.from("customers").select("*").eq("id",id).single();if(error)return notify(error.message,"error");return modalForm("Kunde bearbeiten",customerFields,async f=>dbUpdate("customers",id,Object.fromEntries(f.entries())),data)}
+async function renderCustomers(){const rows=await safeSelect("customers",q=>q.order("created_at",{ascending:false}));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Kunden</h1><p>${rows.length} Kunden</p></div><button class="btn btn-primary" onclick="newCustomerModal()">+ Kunde</button></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Firma</th><th>E-Mail</th><th>Telefon</th><th>Ort</th><th></th></tr></thead><tbody>${rows.map(c=>`<tr><td>${escapeHtml(customerName(c))}</td><td>${escapeHtml(c.company_name||"")}</td><td>${escapeHtml(c.email||"")}</td><td>${escapeHtml(c.phone||"")}</td><td>${escapeHtml([c.postal_code,c.city].filter(Boolean).join(" "))}</td><td><button class="small-btn primary" onclick="editCustomer('${c.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="6">Keine Kunden.</td></tr>'}</tbody></table></div></div>`}
 
 /* ---------- ORDERS ---------- */
-async function renderOrders(){
- const orders=await safeSelect("orders",q=>q.order("event_date",{ascending:true})),customers=await safeSelect("customers");
- const cm=Object.fromEntries(customers.map(c=>[c.id,customerName(c)]));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Aufträge</h1><p style="color:#64748b">${orders.length} Aufträge</p></div></div>
- <div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Auftragsnr.</th><th>Kunde</th><th>Datum</th><th>Art</th><th>Ort</th><th>Status</th><th></th></tr></thead><tbody>
- ${orders.length?orders.map(o=>`<tr><td>${escapeHtml(o.order_number||"-")}</td><td>${escapeHtml(cm[o.customer_id]||"-")}</td><td>${formatDate(o.event_date)}</td><td>${escapeHtml(o.event_type||"-")}</td><td>${escapeHtml(o.event_location||"-")}</td><td>${statusBadge(o.status)}</td><td><button class="small-btn primary" onclick="viewOrder('${o.id}')">Öffnen</button></td></tr>`).join(""):`<tr><td colspan="7"><div class="empty">Keine Aufträge.</div></td></tr>`}
- </tbody></table></div></div>`;
-}
-async function viewOrder(id){
- const {data:o,error}=await rbsupabase.from("orders").select("*").eq("id",id).single();if(error){notify(error.message,"error");return;}
- const ev=(await rbsupabase.from("events").select("*").eq("order_id",id).maybeSingle()).data;
- const invoices=await safeSelect("invoices",q=>q.eq("order_id",id));
- const body=`<div class="dashboard-section"><div class="detail-grid"><div><h3>Auftrag</h3><p><strong>Nummer:</strong> ${escapeHtml(o.order_number||"-")}</p><p><strong>Status:</strong> ${statusBadge(o.status)}</p><p><strong>Datum:</strong> ${formatDate(o.event_date)}</p><p><strong>Art:</strong> ${escapeHtml(o.event_type||"-")}</p></div><div><h3>Veranstaltung</h3><p><strong>Ort:</strong> ${escapeHtml(o.event_location||"-")}</p><p><strong>Start:</strong> ${escapeHtml(o.event_start_time||"-")}</p><p><strong>Ende:</strong> ${escapeHtml(o.event_end_time||"-")}</p><p><strong>Aufbau:</strong> ${escapeHtml(o.setup_start_time||"-")}</p></div></div>
- <p><strong>Gäste:</strong> ${escapeHtml(o.guest_count||"-")}</p><p><strong>Musik:</strong><br>${escapeHtml(o.music_wishes||"-")}</p><p><strong>Hinweise:</strong><br>${escapeHtml(o.special_notes||"-")}</p>
- <p><strong>Kalendereintrag:</strong> ${ev?"vorhanden":"nicht vorhanden"}</p><p><strong>Rechnungen:</strong> ${invoices.length}</p></div>
- <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="small-btn" onclick="editOrder('${o.id}')">Bearbeiten</button><button class="small-btn primary" onclick="createInvoiceFromOrder('${o.id}')">🧾 Rechnung erstellen</button></div>`;
- openDynamicModal("Auftrag",body,{width:"900px"});
-}
-async function editOrder(id){
- const {data:o,error}=await rbsupabase.from("orders").select("*").eq("id",id).single();if(error){notify(error.message,"error");return;}
- const mid=openDynamicModal("Auftrag bearbeiten",`<form id="orderEdit"><div class="form-grid">
- <div class="form-group"><label>Auftragsnummer</label><input name="order_number" value="${escapeHtml(o.order_number||"")}"></div>
- <div class="form-group"><label>Status</label><select name="status">${["anfrage","angebot","gebucht","in_planung","veranstaltung_laeuft","abgeschlossen"].map(s=>`<option ${o.status===s?"selected":""} value="${s}">${s}</option>`).join("")}</select></div>
- <div class="form-group"><label>Datum</label><input type="date" name="event_date" value="${escapeHtml(o.event_date||"")}"></div>
- <div class="form-group"><label>Veranstaltungsart</label><input name="event_type" value="${escapeHtml(o.event_type||"")}"></div>
- <div class="form-group"><label>Start</label><input type="time" name="event_start_time" value="${escapeHtml(o.event_start_time||"")}"></div>
- <div class="form-group"><label>Ende</label><input type="time" name="event_end_time" value="${escapeHtml(o.event_end_time||"")}"></div>
- <div class="form-group"><label>Aufbau</label><input type="time" name="setup_start_time" value="${escapeHtml(o.setup_start_time||"")}"></div>
- <div class="form-group"><label>Gäste</label><input type="number" name="guest_count" value="${escapeHtml(o.guest_count??"")}"></div>
- <div class="form-group full"><label>Ort</label><input name="event_location" value="${escapeHtml(o.event_location||"")}"></div>
- <div class="form-group full"><label>Musikwünsche</label><textarea name="music_wishes">${escapeHtml(o.music_wishes||"")}</textarea></div>
- <div class="form-group full"><label>Hinweise</label><textarea name="special_notes">${escapeHtml(o.special_notes||"")}</textarea></div>
- </div><button class="btn btn-primary">Speichern</button></form>`);
- document.getElementById("orderEdit").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),obj={};f.forEach((v,k)=>obj[k]=String(v).trim()||null);if(obj.guest_count)obj.guest_count=Number(obj.guest_count);obj.updated_at=new Date().toISOString();
- const {error}=await rbsupabase.from("orders").update(obj).eq("id",id);if(error)notify(error.message,"error");else{closeDynamicModal(mid);notify("Auftrag gespeichert");renderOrders();}};
-}
+async function ensureOrderForInquiry(inquiryId){let {data:o}=await rbsupabase.from("orders").select("*").eq("inquiry_id",inquiryId).maybeSingle();if(o)return o;const {data:i,error}=await rbsupabase.from("inquiries").select("*").eq("id",inquiryId).single();if(error)throw error;let cid=i.customer_id;if(!cid){const c=await createCustomerFromInquiryData(i);cid=c.id;await dbUpdate("inquiries",inquiryId,{customer_id:cid})}return dbInsert("orders",{customer_id:cid,inquiry_id:inquiryId,status:"angebot",event_date:i.event_date,event_type:i.event_type,event_location:i.event_location,guest_count:i.guest_count,music_wishes:i.music_wishes,special_notes:i.special_notes,setup_start_time:i.earliest_setup_time})}
+async function createCustomerFromInquiryData(i){return dbInsert("customers",{first_name:i.orderer_name?.split(" ")[0]||null,last_name:i.orderer_name?.split(" ").slice(1).join(" ")||null,email:i.email,phone:i.phone,street:i.orderer_street,house_number:i.orderer_house_number,postal_code:i.orderer_postal_code,city:i.orderer_city})}
+function offerNumber(){return`ANG-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`}
+function invoiceNumber(){return`RE-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`}
+function itemEditor(prefix,items=[{}]){return`<div id="${prefix}Items">${items.map((x,n)=>`<div class="line-item" style="display:grid;grid-template-columns:2fr .7fr 1fr .8fr auto;gap:8px;margin-bottom:8px"><input name="desc" placeholder="Leistung" value="${escapeHtml(x.description||"")}"><input name="qty" type="number" step="0.01" value="${x.quantity??1}"><input name="price" type="number" step="0.01" value="${x.unit_price_net??0}"><input name="vat" type="number" step="0.01" value="${x.vat_rate??19}"><button type="button" class="btn" onclick="this.parentElement.remove()">✕</button></div>`).join("")}</div><button type="button" class="small-btn" onclick="addLineItem('${prefix}')">+ Position</button>`}
+function addLineItem(prefix){const c=document.getElementById(prefix+"Items");const d=document.createElement("div");d.className="line-item";d.style="display:grid;grid-template-columns:2fr .7fr 1fr .8fr auto;gap:8px;margin-bottom:8px";d.innerHTML='<input name="desc" placeholder="Leistung"><input name="qty" type="number" step="0.01" value="1"><input name="price" type="number" step="0.01" value="0"><input name="vat" type="number" step="0.01" value="19"><button type="button" class="btn" onclick="this.parentElement.remove()">✕</button>';c.appendChild(d)}
+function readItems(form){return[...form.querySelectorAll(".line-item")].map((r,i)=>{const q=Number(r.querySelector('[name="qty"]').value||0),p=Number(r.querySelector('[name="price"]').value||0),v=Number(r.querySelector('[name="vat"]').value||0),net=q*p,vat=net*v/100;return{description:r.querySelector('[name="desc"]').value||"Leistung",quantity:q,unit_price_net:p,vat_rate:v,net_amount:net,vat_amount:vat,gross_amount:net+vat,sort_order:i}}).filter(x=>x.description)}
+async function createOfferFromInquiry(inquiryId){const o=await ensureOrderForInquiry(inquiryId);return modalForm("Angebot erstellen",()=>[formInput("Angebotsnummer","offer_number",offerNumber()),formInput("Gültig bis","valid_until",addDays(todayISO(),14),"date"),`<div class="form-group full"><label>Positionen</label>${itemEditor("offer",[{description:"DJ-Service",quantity:1,unit_price_net:0,vat_rate:19}])}</div>`,formArea("Notizen","notes")],async f=>{const form=document.getElementById("rbForm");const items=readItems(form);const net=items.reduce((a,x)=>a+x.net_amount,0),vat=items.reduce((a,x)=>a+x.vat_amount,0);const offer=await dbInsert("offers",{order_id:o.id,customer_id:o.customer_id,offer_number:f.get("offer_number"),valid_until:f.get("valid_until")||null,status:"draft",subtotal_net:net,vat_amount:vat,total_gross:net+vat,notes:f.get("notes")||null});if(items.length)await rbsupabase.from("offer_items").insert(items.map(x=>({...x,offer_id:offer.id})));await dbUpdate("inquiries",inquiryId,{status:"angebot"});notify("Angebot erstellt")})}
+async function renderOffers(){const rows=await safeSelect("offers",q=>q.order("created_at",{ascending:false})),cs=await safeSelect("customers"),os=await safeSelect("orders"),cm=Object.fromEntries(cs.map(x=>[x.id,customerName(x)])),om=Object.fromEntries(os.map(x=>[x.id,x]));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Angebote</h1><p>${rows.length} Angebote</p></div></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Nummer</th><th>Kunde</th><th>Veranstaltung</th><th>Brutto</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(x.offer_number||"-")}</td><td>${escapeHtml(cm[x.customer_id]||"-")}</td><td>${formatDate(om[x.order_id]?.event_date)}</td><td>${formatMoney(x.total_gross)}</td><td>${statusBadge(x.status)}</td><td><button class="small-btn primary" onclick="viewOffer('${x.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="6">Keine Angebote.</td></tr>'}</tbody></table></div></div>`}
+async function viewOffer(id){const {data:o,error}=await rbsupabase.from("offers").select("*").eq("id",id).single();if(error)return notify(error.message,"error");const items=await safeSelect("offer_items",q=>q.eq("offer_id",id).order("sort_order"));const mid=openDynamicModal("Angebot "+(o.offer_number||""),`<p>${statusBadge(o.status)}</p><table><tbody>${items.map(x=>`<tr><td>${escapeHtml(x.description)}</td><td>${x.quantity}</td><td>${formatMoney(x.unit_price_net)}</td><td>${formatMoney(x.gross_amount)}</td></tr>`).join("")}</tbody></table><hr><p><strong>Netto:</strong> ${formatMoney(o.subtotal_net)} · <strong>USt:</strong> ${formatMoney(o.vat_amount)} · <strong>Brutto:</strong> ${formatMoney(o.total_gross)}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="setOfferStatus('${id}','sent');closeDynamicModal('${mid}')">Als versendet markieren</button><button class="btn btn-primary" onclick="acceptOffer('${id}');closeDynamicModal('${mid}')">Angebot annehmen</button></div>`)}
+async function setOfferStatus(id,status){await dbUpdate("offers",id,{status});notify("Angebotsstatus aktualisiert");await renderOffers()}
+async function acceptOffer(id){const {data:o,error}=await rbsupabase.from("offers").select("*").eq("id",id).single();if(error)throw error;await dbUpdate("offers",id,{status:"accepted"});await dbUpdate("orders",o.order_id,{status:"gebucht"});const {data:ord}=await rbsupabase.from("orders").select("*").eq("id",o.order_id).single();if(ord.event_date){const start=`${ord.event_date}T${ord.event_start_time||"20:00"}`;const end=`${ord.event_date}T${ord.event_end_time||"23:59"}`;const ex=await rbsupabase.from("events").select("id").eq("order_id",ord.id).maybeSingle();if(!ex.data)await dbInsert("events",{order_id:ord.id,title:ord.event_type||"Veranstaltung",description:ord.special_notes, start_time:start,end_time:end,location:ord.event_location,event_type:ord.event_type})}notify("Auftrag gebucht")}
+
+/* ---------- ORDERS ---------- */
+async function renderOrders(){const rows=await safeSelect("orders",q=>q.order("event_date",{ascending:true})),cs=await safeSelect("customers"),cm=Object.fromEntries(cs.map(c=>[c.id,customerName(c)]));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Aufträge</h1><p>${rows.length}</p></div><button class="btn btn-primary" onclick="newOrderModal()">+ Auftrag</button></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Kunde</th><th>Datum</th><th>Art</th><th>Ort</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(o=>`<tr><td>${escapeHtml(o.order_number||"-")}</td><td>${escapeHtml(cm[o.customer_id]||"-")}</td><td>${formatDate(o.event_date)}</td><td>${escapeHtml(o.event_type||"")}</td><td>${escapeHtml(o.event_location||"")}</td><td>${statusBadge(o.status)}</td><td><button class="small-btn primary" onclick="viewOrder('${o.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="7">Keine Aufträge.</td></tr>'}</tbody></table></div></div>`}
+async function newOrderModal(){const cs=await safeSelect("customers",q=>q.order("last_name"));return modalForm("Auftrag anlegen",()=>[formSelect("Kunde","customer_id","",[["","Bitte wählen"],...cs.map(c=>[c.id,customerName(c)])]),formInput("Auftragsnummer","order_number",`RB-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`),formSelect("Status","status","angebot",[["angebot","Angebot"],["gebucht","Gebucht"],["in_planung","In Planung"],["läuft","Veranstaltung läuft"],["abgeschlossen","Abgeschlossen"]]),formInput("Datum","event_date","","date"),formInput("Beginn","event_start_time","","time"),formInput("Ende","event_end_time","","time"),formInput("Aufbau","setup_start_time","","time"),formInput("Art","event_type"),formInput("Ort","event_location"),formInput("Gäste","guest_count","","number"),formArea("Musikwünsche","music_wishes"),formArea("Besonderheiten","special_notes")],async f=>dbInsert("orders",Object.fromEntries(f.entries())))}
+async function viewOrder(id){const {data:o,error}=await rbsupabase.from("orders").select("*").eq("id",id).single();if(error)return notify(error.message,"error");const mid=openDynamicModal("Auftrag "+(o.order_number||""),`<div class="detail-grid"><div><p><strong>Status:</strong> ${statusBadge(o.status)}</p><p>${formatDate(o.event_date)}<br>${escapeHtml(o.event_type||"")}<br>${escapeHtml(o.event_location||"")}<br>${o.guest_count||"-"} Gäste</p></div><div><p>Aufbau: ${escapeHtml(o.setup_start_time||"-")}<br>Beginn: ${escapeHtml(o.event_start_time||"-")}<br>Ende: ${escapeHtml(o.event_end_time||"-")}</p></div></div><p>${escapeHtml(o.music_wishes||"")}</p><p>${escapeHtml(o.special_notes||"")}</p><div style="display:flex;gap:8px"><button class="btn" onclick="editOrder('${id}');closeDynamicModal('${mid}')">Bearbeiten</button><button class="btn btn-primary" onclick="createInvoiceFromOrder('${id}');closeDynamicModal('${mid}')">Rechnung erstellen</button></div>`)}
+async function editOrder(id){const {data:o,error}=await rbsupabase.from("orders").select("*").eq("id",id).single();if(error)return notify(error.message,"error");return modalForm("Auftrag bearbeiten",()=>[formInput("Auftragsnummer","order_number",o.order_number),formSelect("Status","status",o.status,[["angebot","Angebot"],["gebucht","Gebucht"],["in_planung","In Planung"],["läuft","Veranstaltung läuft"],["abgeschlossen","Abgeschlossen"]]),formInput("Datum","event_date",o.event_date,"date"),formInput("Beginn","event_start_time",o.event_start_time,"time"),formInput("Ende","event_end_time",o.event_end_time,"time"),formInput("Aufbau","setup_start_time",o.setup_start_time,"time"),formInput("Art","event_type",o.event_type),formInput("Ort","event_location",o.event_location),formInput("Gäste","guest_count",o.guest_count,"number"),formArea("Musikwünsche","music_wishes",o.music_wishes),formArea("Besonderheiten","special_notes",o.special_notes)],async f=>{await dbUpdate("orders",id,Object.fromEntries(f.entries()));const st=f.get("event_start_time"),et=f.get("event_end_time");const ev=await rbsupabase.from("events").select("*").eq("order_id",id).maybeSingle();if(ev.data&&f.get("event_date")){await dbUpdate("events",ev.data.id,{start_time:`${f.get("event_date")}T${st||"20:00"}`,end_time:`${f.get("event_date")}T${et||"23:59"}`,location:f.get("event_location"),event_type:f.get("event_type")})}},o)}
 
 /* ---------- INVOICES ---------- */
-async function createInvoiceFromOrder(orderId){
- try{
-  const {data:o,error}=await rbsupabase.from("orders").select("*").eq("id",orderId).single();if(error)throw error;
-  const offers=await safeSelect("offers",q=>q.eq("order_id",orderId).order("created_at",{ascending:false}).limit(1));
-  const offer=offers[0];let items=[];
-  if(offer) items=await safeSelect("offer_items",q=>q.eq("offer_id",offer.id).order("sort_order"));
-  if(!items.length) items=[{description:"DJ-Leistung",quantity:1,unit_price_net:0,vat_rate:19,net_amount:0,vat_amount:0,gross_amount:0}];
-  const mid=openDynamicModal("Rechnung erstellen",`<form id="invoiceEditor"><div class="form-grid">
-    <div class="form-group"><label>Rechnungsnummer</label><input name="invoice_number" value="${invoiceNumber()}"></div>
-    <div class="form-group"><label>Fällig am</label><input type="date" name="due_date" value="${o.event_date?addDays(o.event_date,14):addDays(todayISO(),14)}"></div>
-    <div class="form-group full"><label>Hinweise</label><textarea name="notes"></textarea></div></div><h3>Positionen</h3>${itemEditor(items)}
-    <div style="display:flex;justify-content:flex-end;margin-top:20px"><button class="btn btn-primary">Rechnung speichern</button></div></form>`,{width:"1100px"});
-  recalcLineItems();
-  document.getElementById("invoiceEditor").onsubmit=async e=>{
-   e.preventDefault();const totals=recalcLineItems(),f=new FormData(e.target);
-   const {data:inv,error:ie}=await rbsupabase.from("invoices").insert({order_id:o.id,customer_id:o.customer_id,invoice_number:f.get("invoice_number"),invoice_date:todayISO(),due_date:f.get("due_date")||null,status:"draft",subtotal_net:totals.net,vat_amount:totals.vat,total_gross:totals.gross,amount_paid:0,amount_open:totals.gross,notes:f.get("notes")||null}).select().single();
-   if(ie){notify(ie.message,"error");return;}
-   const rows=[...document.querySelectorAll("#lineItemTable tbody tr")].map((tr,idx)=>{const q=Number(tr.querySelector(".oi-qty").value||0),p=Number(tr.querySelector(".oi-price").value||0),r=Number(tr.querySelector(".oi-vat").value||0),n=q*p,v=n*r/100;return{invoice_id:inv.id,description:tr.querySelector(".oi-desc").value.trim()||"Position",quantity:q,unit_price_net:p,vat_rate:r,net_amount:n,vat_amount:v,gross_amount:n+v,sort_order:idx};});
-   const {error:li}=await rbsupabase.from("invoice_items").insert(rows);if(li){notify(li.message,"error");return;}
-   closeDynamicModal(mid);notify("Rechnung wurde erstellt");renderInvoices();
-  };
- }catch(err){notify(err.message||err,"error");}
-}
-async function renderInvoices(){
- const inv=await safeSelect("invoices",q=>q.order("invoice_date",{ascending:false})),customers=await safeSelect("customers"),orders=await safeSelect("orders");
- const cm=Object.fromEntries(customers.map(c=>[c.id,customerName(c)])),om=Object.fromEntries(orders.map(o=>[o.id,o]));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Rechnungen</h1><p style="color:#64748b">Entwurf → erstellt → versendet → fällig → bezahlt → überfällig</p></div></div>
- <div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Nummer</th><th>Kunde</th><th>Datum</th><th>Fälligkeit</th><th>Brutto</th><th>Offen</th><th>Status</th><th></th></tr></thead><tbody>
- ${inv.length?inv.map(i=>`<tr><td>${escapeHtml(i.invoice_number||"-")}</td><td>${escapeHtml(cm[i.customer_id]||"-")}</td><td>${formatDate(i.invoice_date)}</td><td>${formatDate(i.due_date)}</td><td>${formatMoney(i.total_gross)}</td><td>${formatMoney(i.amount_open)}</td><td>${statusBadge(i.status)}</td><td><button class="small-btn primary" onclick="viewInvoice('${i.id}')">Öffnen</button></td></tr>`).join(""):`<tr><td colspan="8"><div class="empty">Keine Rechnungen vorhanden.</div></td></tr>`}
- </tbody></table></div></div>`;
-}
-async function viewInvoice(id){
- const {data:i,error}=await rbsupabase.from("invoices").select("*").eq("id",id).single();if(error){notify(error.message,"error");return;}
- const items=await safeSelect("invoice_items",q=>q.eq("invoice_id",id).order("sort_order")),payments=await safeSelect("payments",q=>q.eq("invoice_id",id).order("payment_date",{ascending:false}));
- const body=`<div class="dashboard-section"><p><strong>Rechnungsnummer:</strong> ${escapeHtml(i.invoice_number||"-")}</p><p><strong>Status:</strong> ${statusBadge(i.status)}</p>
- <div class="table-wrap"><table><thead><tr><th>Position</th><th>Menge</th><th>Netto</th><th>USt</th><th>Brutto</th></tr></thead><tbody>${items.map(x=>`<tr><td>${escapeHtml(x.description)}</td><td>${x.quantity}</td><td>${formatMoney(x.net_amount)}</td><td>${formatMoney(x.vat_amount)}</td><td>${formatMoney(x.gross_amount)}</td></tr>`).join("")}</tbody></table></div>
- <div style="text-align:right;margin-top:15px"><strong>Netto ${formatMoney(i.subtotal_net)} · USt ${formatMoney(i.vat_amount)} · Brutto ${formatMoney(i.total_gross)} · Offen ${formatMoney(i.amount_open)}</strong></div>
- <h3 style="margin-top:25px">Zahlungen</h3>${payments.length?payments.map(p=>`<p>${formatDate(p.payment_date)} · ${formatMoney(p.amount)} · ${escapeHtml(p.payment_method||"")} ${escapeHtml(p.reference||"")}</p>`).join(""):`<p style="color:#64748b">Keine Zahlungen.</p>`}</div>
- <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="small-btn" onclick="setInvoiceStatus('${i.id}','sent')">Versendet</button><button class="small-btn" onclick="setInvoiceStatus('${i.id}','fällig')">Fällig</button><button class="small-btn primary" onclick="addPayment('${i.id}')">💶 Zahlung erfassen</button></div>`;
- openDynamicModal("Rechnung",body,{width:"1000px"});
-}
-async function setInvoiceStatus(id,status){const {error}=await rbsupabase.from("invoices").update({status,updated_at:new Date().toISOString()}).eq("id",id);if(error)notify(error.message,"error");else{notify("Rechnungsstatus aktualisiert");renderInvoices();}}
-async function addPayment(invoiceId){
- const {data:i,error}=await rbsupabase.from("invoices").select("*").eq("id",invoiceId).single();if(error){notify(error.message,"error");return;}
- const mid=openDynamicModal("Zahlung erfassen",`<form id="paymentForm"><div class="form-grid"><div class="form-group"><label>Betrag € *</label><input name="amount" type="number" step="0.01" max="${Number(i.amount_open||0)}" required></div><div class="form-group"><label>Zahlungsdatum</label><input name="payment_date" type="date" value="${todayISO()}"></div><div class="form-group"><label>Zahlungsart</label><select name="payment_method"><option value="bank">Bank</option><option value="cash">Bar</option><option value="other">Sonstiges</option></select></div><div class="form-group"><label>Referenz</label><input name="reference"></div><div class="form-group full"><label>Notiz</label><textarea name="notes"></textarea></div></div><button class="btn btn-primary">Zahlung speichern</button></form>`);
- document.getElementById("paymentForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),amount=Number(f.get("amount"));if(amount<=0||amount>Number(i.amount_open)+0.01){notify("Ungültiger Betrag","error");return;}
- const {error:pe}=await rbsupabase.from("payments").insert({invoice_id:i.id,order_id:i.order_id,payment_date:f.get("payment_date"),amount,payment_method:f.get("payment_method"),reference:f.get("reference")||null,notes:f.get("notes")||null});if(pe){notify(pe.message,"error");return;}
- const newPaid=Math.min(Number(i.total_gross),Number(i.amount_paid||0)+amount),open=Math.max(0,Number(i.total_gross)-newPaid),status=open<=0.009?"bezahlt":(i.due_date&&new Date(i.due_date+"T23:59:59")<new Date()?"überfällig":i.status);
- const {error:ue}=await rbsupabase.from("invoices").update({amount_paid:newPaid,amount_open:open,status,updated_at:new Date().toISOString()}).eq("id",i.id);if(ue){notify(ue.message,"error");return;}
- closeDynamicModal(mid);notify("Zahlung erfasst");renderInvoices();};
-}
+async function createInvoiceFromOrder(orderId){const {data:o,error}=await rbsupabase.from("orders").select("*").eq("id",orderId).single();if(error)throw error;const offer=await rbsupabase.from("offers").select("*").eq("order_id",orderId).eq("status","accepted").maybeSingle();const source=offer.data;return modalForm("Rechnung erstellen",()=>[formInput("Rechnungsnummer","invoice_number",invoiceNumber()),formInput("Rechnungsdatum","invoice_date",todayISO(),"date"),formInput("Fällig am","due_date",addDays(o.event_date||todayISO(),14),"date"),`<div class="form-group full"><label>Positionen</label>${itemEditor("invoice",source?[{description:"DJ-Service",quantity:1,unit_price_net:source.subtotal_net,vat_rate:19}]:[{description:"DJ-Service",quantity:1,unit_price_net:0,vat_rate:19}])}</div>`,formArea("Notizen","notes")],async f=>{const items=readItems(document.getElementById("rbForm")),net=items.reduce((a,x)=>a+x.net_amount,0),vat=items.reduce((a,x)=>a+x.vat_amount,0);const inv=await dbInsert("invoices",{order_id:orderId,customer_id:o.customer_id,invoice_number:f.get("invoice_number"),invoice_date:f.get("invoice_date"),due_date:f.get("due_date"),status:"draft",subtotal_net:net,vat_amount:vat,total_gross:net+vat,amount_paid:0,amount_open:net+vat,notes:f.get("notes")||null});if(items.length)await rbsupabase.from("invoice_items").insert(items.map(x=>({...x,invoice_id:inv.id})));notify("Rechnung erstellt")})}
+async function renderInvoices(){const rows=await safeSelect("invoices",q=>q.order("invoice_date",{ascending:false})),cs=await safeSelect("customers"),cm=Object.fromEntries(cs.map(c=>[c.id,customerName(c)]));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Rechnungen</h1><p>${rows.length}</p></div></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Kunde</th><th>Datum</th><th>Fällig</th><th>Brutto</th><th>Offen</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(i=>`<tr><td>${escapeHtml(i.invoice_number||"-")}</td><td>${escapeHtml(cm[i.customer_id]||"-")}</td><td>${formatDate(i.invoice_date)}</td><td>${formatDate(i.due_date)}</td><td>${formatMoney(i.total_gross)}</td><td>${formatMoney(i.amount_open)}</td><td>${statusBadge(i.status)}</td><td><button class="small-btn primary" onclick="viewInvoice('${i.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="8">Keine Rechnungen.</td></tr>'}</tbody></table></div></div>`}
+async function viewInvoice(id){const {data:i,error}=await rbsupabase.from("invoices").select("*").eq("id",id).single();if(error)return notify(error.message,"error");const pays=await safeSelect("payments",q=>q.eq("invoice_id",id).order("payment_date",{ascending:false}));const mid=openDynamicModal("Rechnung "+(i.invoice_number||""),`<p>${statusBadge(i.status)}</p><p>Netto ${formatMoney(i.subtotal_net)} · USt ${formatMoney(i.vat_amount)} · <strong>Brutto ${formatMoney(i.total_gross)}</strong></p><p>Bezahlt: ${formatMoney(i.amount_paid)} · Offen: ${formatMoney(i.amount_open)}</p><h3>Zahlungen</h3>${pays.map(p=>`<p>${formatDate(p.payment_date)} – ${formatMoney(p.amount)} – ${escapeHtml(p.payment_method)}</p>`).join("")||"Keine Zahlungen."}<div style="display:flex;gap:8px"><button class="btn" onclick="setInvoiceStatus('${id}','sent');closeDynamicModal('${mid}')">Versendet</button><button class="btn btn-primary" onclick="addPayment('${id}');closeDynamicModal('${mid}')">Zahlung erfassen</button></div>`)}
+async function setInvoiceStatus(id,status){await dbUpdate("invoices",id,{status});notify("Rechnungsstatus aktualisiert");await renderInvoices()}
+async function addPayment(invoiceId){const {data:i,error}=await rbsupabase.from("invoices").select("*").eq("id",invoiceId).single();if(error)throw error;return modalForm("Zahlung erfassen",()=>[formInput("Datum","payment_date",todayISO(),"date"),formInput("Betrag","amount",i.amount_open,"number","step=0.01 required"),formSelect("Zahlungsart","payment_method","bank",[["bank","Bank"],["cash","Bar"],["card","Karte"],["other","Sonstiges"]]),formInput("Referenz","reference"),formArea("Notizen","notes")],async f=>{const amount=Number(f.get("amount"));await dbInsert("payments",{invoice_id:invoiceId,order_id:i.order_id,payment_date:f.get("payment_date"),amount,payment_method:f.get("payment_method"),reference:f.get("reference")||null,notes:f.get("notes")||null});const paid=Number(i.amount_paid||0)+amount,open=Math.max(0,Number(i.total_gross)-paid);await dbUpdate("invoices",invoiceId,{amount_paid:paid,amount_open:open,status:open<=0?"paid":"sent"})})}
 
 /* ---------- CALENDAR ---------- */
-async function renderCalendar(){
- const events=await safeSelect("events",q=>q.order("start_time",{ascending:true})),orders=await safeSelect("orders");
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Kalender</h1><p style="color:#64748b">Veranstaltungen und Termine</p></div><button class="btn btn-primary" onclick="newEventModal()">+ Termin</button></div>
- <div class="dashboard-section"><div class="calendar-list">${events.length?events.map(e=>`<div class="calendar-event"><div><strong>${escapeHtml(e.title)}</strong><div>${formatDateTime(e.start_time)}${e.end_time?" – "+formatDateTime(e.end_time):""}</div><small>${escapeHtml(e.location||"")}</small></div><button class="small-btn" onclick="editEvent('${e.id}')">Bearbeiten</button></div>`).join(""):`<div class="empty">Keine Termine.</div>`}</div></div>`;
-}
-function newEventModal(existing={}){
- const mid=openDynamicModal(existing.id?"Termin bearbeiten":"Termin anlegen",`<form id="eventForm"><div class="form-grid"><div class="form-group"><label>Titel *</label><input name="title" required value="${escapeHtml(existing.title||"")}"></div><div class="form-group"><label>Art</label><input name="event_type" value="${escapeHtml(existing.event_type||"")}"></div><div class="form-group"><label>Start *</label><input name="start_time" type="datetime-local" required value="${existing.start_time?new Date(existing.start_time).toISOString().slice(0,16):""}"></div><div class="form-group"><label>Ende</label><input name="end_time" type="datetime-local" value="${existing.end_time?new Date(existing.end_time).toISOString().slice(0,16):""}"></div><div class="form-group full"><label>Ort</label><input name="location" value="${escapeHtml(existing.location||"")}"></div><div class="form-group full"><label>Beschreibung</label><textarea name="description">${escapeHtml(existing.description||"")}</textarea></div></div><button class="btn btn-primary">Speichern</button></form>`);
- document.getElementById("eventForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),obj={title:f.get("title"),event_type:f.get("event_type")||null,start_time:new Date(f.get("start_time")).toISOString(),end_time:f.get("end_time")?new Date(f.get("end_time")).toISOString():null,location:f.get("location")||null,description:f.get("description")||null};
- const res=existing.id?await rbsupabase.from("events").update(obj).eq("id",existing.id):await rbsupabase.from("events").insert(obj);if(res.error)notify(res.error.message,"error");else{closeDynamicModal(mid);notify("Termin gespeichert");renderCalendar();}};
-}
-async function editEvent(id){const {data,error}=await rbsupabase.from("events").select("*").eq("id",id).single();if(error)notify(error.message,"error");else newEventModal(data);}
+async function renderCalendar(){const rows=await safeSelect("events",q=>q.order("start_time"));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Kalender</h1><p>${rows.length} Termine</p></div><button class="btn btn-primary" onclick="newEventModal()">+ Termin</button></div><div class="calendar-list">${rows.map(e=>`<div class="calendar-event"><div><strong>${escapeHtml(e.title)}</strong><br>${formatDateTime(e.start_time)}${e.end_time?" – "+formatDateTime(e.end_time):""}<br>${escapeHtml(e.location||"")}</div><button class="small-btn" onclick="editEvent('${e.id}')">Bearbeiten</button></div>`).join("")||"Keine Termine."}</div>`}
+function eventFields(e={}){return[formInput("Titel","title",e.title),formInput("Beginn","start_time",e.start_time?new Date(e.start_time).toISOString().slice(0,16):"","datetime-local","required"),formInput("Ende","end_time",e.end_time?new Date(e.end_time).toISOString().slice(0,16):"","datetime-local"),formInput("Ort","location",e.location),formInput("Art","event_type",e.event_type),formArea("Beschreibung","description",e.description)]}
+function newEventModal(){return modalForm("Termin anlegen",eventFields,async f=>dbInsert("events",{title:f.get("title"),start_time:f.get("start_time"),end_time:f.get("end_time")||null,location:f.get("location")||null,event_type:f.get("event_type")||null,description:f.get("description")||null}))}
+async function editEvent(id){const {data:e,error}=await rbsupabase.from("events").select("*").eq("id",id).single();if(error)return notify(error.message,"error");return modalForm("Termin bearbeiten",eventFields,async f=>dbUpdate("events",id,{title:f.get("title"),start_time:f.get("start_time"),end_time:f.get("end_time")||null,location:f.get("location")||null,event_type:f.get("event_type")||null,description:f.get("description")||null}),e)}
 
 /* ---------- EQUIPMENT ---------- */
-async function renderEquipment(){
- const rows=await safeSelect("equipment",q=>q.order("name"));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Equipment</h1><p style="color:#64748b">${rows.length} Geräte/Artikel</p></div><button class="btn btn-primary" onclick="newEquipmentModal()">+ Equipment</button></div>
- <div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Kategorie</th><th>Hersteller / Modell</th><th>Seriennummer</th><th>Standort</th><th>Zustand</th><th>Status</th><th></th></tr></thead><tbody>
- ${rows.length?rows.map(x=>`<tr><td><strong>${escapeHtml(x.name)}</strong></td><td>${escapeHtml(x.category||"-")}</td><td>${escapeHtml([x.manufacturer,x.model].filter(Boolean).join(" / ")||"-")}</td><td>${escapeHtml(x.serial_number||"-")}</td><td>${escapeHtml(x.location||"-")}</td><td>${escapeHtml(x.condition||"-")}</td><td>${statusBadge(x.status)}</td><td><button class="small-btn primary" onclick="editEquipment('${x.id}')">Öffnen</button></td></tr>`).join(""):`<tr><td colspan="8"><div class="empty">Kein Equipment erfasst.</div></td></tr>`}
- </tbody></table></div></div>`;
-}
-function equipmentForm(x={}){
- return `<form id="equipmentForm"><div class="form-grid"><div class="form-group"><label>Name *</label><input name="name" required value="${escapeHtml(x.name||"")}"></div><div class="form-group"><label>Kategorie</label><input name="category" value="${escapeHtml(x.category||"")}"></div><div class="form-group"><label>Hersteller</label><input name="manufacturer" value="${escapeHtml(x.manufacturer||"")}"></div><div class="form-group"><label>Modell</label><input name="model" value="${escapeHtml(x.model||"")}"></div><div class="form-group"><label>Seriennummer</label><input name="serial_number" value="${escapeHtml(x.serial_number||"")}"></div><div class="form-group"><label>Anschaffung</label><input type="date" name="acquisition_date" value="${escapeHtml(x.acquisition_date||"")}"></div><div class="form-group"><label>Netto Anschaffung €</label><input type="number" step="0.01" name="acquisition_price_net" value="${escapeHtml(x.acquisition_price_net??"")}"></div><div class="form-group"><label>USt %</label><input type="number" step="0.01" name="vat_rate" value="${escapeHtml(x.vat_rate??19)}"></div><div class="form-group"><label>Brutto Anschaffung €</label><input type="number" step="0.01" name="acquisition_price_gross" value="${escapeHtml(x.acquisition_price_gross??"")}"></div><div class="form-group"><label>Standort</label><input name="location" value="${escapeHtml(x.location||"")}"></div><div class="form-group"><label>Zustand</label><input name="condition" value="${escapeHtml(x.condition||"gut")}"></div><div class="form-group"><label>Status</label><select name="status">${["available","in_use","maintenance","defekt"].map(s=>`<option value="${s}" ${x.status===s?"selected":""}>${s}</option>`).join("")}</select></div><div class="form-group full"><label>Beschreibung</label><textarea name="description">${escapeHtml(x.description||"")}</textarea></div><div class="form-group full"><label>Notizen</label><textarea name="notes">${escapeHtml(x.notes||"")}</textarea></div></div><button class="btn btn-primary">Speichern</button></form>`;
-}
-function newEquipmentModal(){const mid=openDynamicModal("Equipment anlegen",equipmentForm());document.getElementById("equipmentForm").onsubmit=e=>saveEquipment(e,null,mid);}
-async function editEquipment(id){const {data,error}=await rbsupabase.from("equipment").select("*").eq("id",id).single();if(error)notify(error.message,"error");else{const mid=openDynamicModal("Equipment bearbeiten",equipmentForm(data));document.getElementById("equipmentForm").onsubmit=e=>saveEquipment(e,id,mid);}}
-async function saveEquipment(e,id,mid){e.preventDefault();const f=new FormData(e.target),obj={};f.forEach((v,k)=>obj[k]=String(v).trim()||null);["acquisition_price_net","vat_rate","acquisition_price_gross"].forEach(k=>{if(obj[k]!==null)obj[k]=Number(obj[k]);});const res=id?await rbsupabase.from("equipment").update(obj).eq("id",id):await rbsupabase.from("equipment").insert(obj);if(res.error)notify(res.error.message,"error");else{closeDynamicModal(mid);notify("Equipment gespeichert");renderEquipment();}}
+function equipmentFields(x={}){return[formInput("Name *","name",x.name,"text","required"),formInput("Kategorie","category",x.category),formInput("Hersteller","manufacturer",x.manufacturer),formInput("Modell","model",x.model),formInput("Seriennummer","serial_number",x.serial_number),formInput("Foto-URL","photo_url",x.photo_url,"url"),formInput("Anschaffungsdatum","acquisition_date",x.acquisition_date,"date"),formInput("Netto-Kaufpreis","acquisition_price_net",x.acquisition_price_net,"number","step=0.01"),formInput("USt %","vat_rate",x.vat_rate??19,"number","step=0.01"),formInput("Brutto-Kaufpreis","acquisition_price_gross",x.acquisition_price_gross,"number","step=0.01"),formInput("Standort","location",x.location),formSelect("Zustand","condition",x.condition||"gut",[["neu","Neu"],["gut","Gut"],["gebraucht","Gebraucht"],["defekt","Defekt"]]),formSelect("Status","status",x.status||"available",[["available","Verfügbar"],["maintenance","Wartung"],["defekt","Defekt"],["retired","Ausgemustert"]]),formArea("Beschreibung","description",x.description),formArea("Notizen","notes",x.notes)]}
+function newEquipmentModal(){return modalForm("Equipment anlegen",equipmentFields,async f=>dbInsert("equipment",Object.fromEntries(f.entries())))}
+async function editEquipment(id){const {data:x,error}=await rbsupabase.from("equipment").select("*").eq("id",id).single();if(error)return notify(error.message,"error");return modalForm("Equipment bearbeiten",equipmentFields,async f=>dbUpdate("equipment",id,Object.fromEntries(f.entries())),x)}
+async function renderEquipment(){const rows=await safeSelect("equipment",q=>q.order("name"));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Equipment</h1><p>${rows.length} Geräte</p></div><button class="btn btn-primary" onclick="newEquipmentModal()">+ Equipment</button></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Kategorie</th><th>Hersteller/Modell</th><th>Seriennr.</th><th>Standort</th><th>Zustand</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td>${escapeHtml(x.category||"")}</td><td>${escapeHtml([x.manufacturer,x.model].filter(Boolean).join(" / "))}</td><td>${escapeHtml(x.serial_number||"")}</td><td>${escapeHtml(x.location||"")}</td><td>${escapeHtml(x.condition||"")}</td><td>${statusBadge(x.status)}</td><td><button class="small-btn primary" onclick="editEquipment('${x.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="8">Kein Equipment.</td></tr>'}</tbody></table></div></div>`}
 
 /* ---------- MUSIC ---------- */
-async function renderMusic(){
- const rows=await safeSelect("music_requests",q=>q.order("requested_at",{ascending:false})),orders=await safeSelect("orders");
- const om=Object.fromEntries(orders.map(o=>[o.id,o]));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Musikwünsche</h1><p style="color:#64748b">${rows.length} Wünsche</p></div></div>
- <div class="dashboard-section"><p style="color:#64748b">QR-Link für einen Auftrag: <code>?music=AUFTRAGS-ID</code></p><div class="table-wrap"><table><thead><tr><th>Song</th><th>Künstler</th><th>Veranstaltung</th><th>Hinweis</th><th>Zeit</th><th>Status</th><th></th></tr></thead><tbody>
- ${rows.length?rows.map(r=>`<tr><td><strong>${escapeHtml(r.song_title)}</strong></td><td>${escapeHtml(r.artist||"-")}</td><td>${escapeHtml(om[r.order_id]?.event_location||r.order_id)}</td><td>${escapeHtml(r.guest_note||"-")}</td><td>${formatDateTime(r.requested_at)}</td><td>${statusBadge(r.status)}</td><td><select onchange="setMusicStatus('${r.id}',this.value)"><option ${r.status==="open"?"selected":""} value="open">offen</option><option ${r.status==="later"?"selected":""} value="later">später</option><option ${r.status==="played"?"selected":""} value="played">gespielt</option><option ${r.status==="rejected"?"selected":""} value="rejected">abgelehnt</option></select></td></tr>`).join(""):`<tr><td colspan="7"><div class="empty">Noch keine Musikwünsche.</div></td></tr>`}
- </tbody></table></div></div>`;
-}
-async function setMusicStatus(id,status){const obj={status};if(status==="played")obj.played_at=new Date().toISOString();const {error}=await rbsupabase.from("music_requests").update(obj).eq("id",id);if(error)notify(error.message,"error");else renderMusic();}
+async function renderMusic(){const rows=await safeSelect("music_requests",q=>q.order("requested_at",{ascending:false}));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Musikwünsche</h1><p>${rows.length} Wünsche</p></div></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Song</th><th>Interpret</th><th>Hinweis</th><th>Status</th><th>Datum</th><th></th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(x.song_title)}</td><td>${escapeHtml(x.artist||"")}</td><td>${escapeHtml(x.guest_note||"")}</td><td>${statusBadge(x.status)}</td><td>${formatDateTime(x.requested_at)}</td><td><select onchange="setMusicStatus('${x.id}',this.value)"><option value="open" ${x.status==='open'?"selected":""}>Offen</option><option value="later" ${x.status==='later'?"selected":""}>Später</option><option value="played" ${x.status==='played'?"selected":""}>Gespielt</option><option value="rejected" ${x.status==='rejected'?"selected":""}>Abgelehnt</option></select></td></tr>`).join("")||'<tr><td colspan="6">Keine Musikwünsche.</td></tr>'}</tbody></table></div></div>`}
+async function setMusicStatus(id,status){await dbUpdate("music_requests",id,{status,played_at:status==="played"?new Date().toISOString():null});notify("Musikwunsch aktualisiert");await renderMusic()}
 
 /* ---------- TASKS ---------- */
-async function renderTasks(){
- const rows=await safeSelect("tasks",q=>q.order("due_date",{ascending:true})),profiles=await safeSelect("profiles");
- const pm=Object.fromEntries(profiles.map(p=>[p.id,[p.first_name,p.last_name].filter(Boolean).join(" ")||p.id]));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Aufgaben</h1><p style="color:#64748b">${rows.length} Aufgaben</p></div><button class="btn btn-primary" onclick="newTaskModal()">+ Aufgabe</button></div>
- <div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Aufgabe</th><th>Fällig</th><th>Priorität</th><th>Zuständig</th><th>Status</th><th></th></tr></thead><tbody>
- ${rows.length?rows.map(t=>`<tr><td><strong>${escapeHtml(t.title)}</strong><br><small>${escapeHtml(t.description||"")}</small></td><td>${formatDate(t.due_date)}</td><td>${escapeHtml(t.priority)}</td><td>${escapeHtml(pm[t.assigned_to]||"-")}</td><td>${statusBadge(t.status)}</td><td><button class="small-btn primary" onclick="editTask('${t.id}')">Öffnen</button></td></tr>`).join(""):`<tr><td colspan="6"><div class="empty">Keine Aufgaben.</div></td></tr>`}
- </tbody></table></div></div>`;
-}
-async function taskForm(t={}){
- const profiles=await safeSelect("profiles",q=>q.eq("role","internal"));
- return `<form id="taskForm"><div class="form-grid"><div class="form-group"><label>Titel *</label><input name="title" required value="${escapeHtml(t.title||"")}"></div><div class="form-group"><label>Fällig</label><input type="date" name="due_date" value="${escapeHtml(t.due_date||"")}"></div><div class="form-group"><label>Priorität</label><select name="priority">${["low","normal","high","urgent"].map(s=>`<option ${t.priority===s?"selected":""}>${s}</option>`).join("")}</select></div><div class="form-group"><label>Status</label><select name="status">${["open","in_progress","completed"].map(s=>`<option ${t.status===s?"selected":""}>${s}</option>`).join("")}</select></div><div class="form-group"><label>Zuständig</label><select name="assigned_to"><option value="">-</option>${profiles.map(p=>`<option value="${p.id}" ${t.assigned_to===p.id?"selected":""}>${escapeHtml([p.first_name,p.last_name].filter(Boolean).join(" ")||p.id)}</option>`).join("")}</select></div><div class="form-group full"><label>Beschreibung</label><textarea name="description">${escapeHtml(t.description||"")}</textarea></div></div><button class="btn btn-primary">Speichern</button></form>`;
-}
-async function newTaskModal(){const mid=openDynamicModal("Aufgabe anlegen",await taskForm());document.getElementById("taskForm").onsubmit=e=>saveTask(e,null,mid);}
-async function editTask(id){const {data,error}=await rbsupabase.from("tasks").select("*").eq("id",id).single();if(error)notify(error.message,"error");else{const mid=openDynamicModal("Aufgabe bearbeiten",await taskForm(data));document.getElementById("taskForm").onsubmit=e=>saveTask(e,id,mid);}}
-async function saveTask(e,id,mid){e.preventDefault();const f=new FormData(e.target),obj={};f.forEach((v,k)=>obj[k]=String(v).trim()||null);const res=id?await rbsupabase.from("tasks").update(obj).eq("id",id):await rbsupabase.from("tasks").insert(obj);if(res.error)notify(res.error.message,"error");else{closeDynamicModal(mid);notify("Aufgabe gespeichert");renderTasks();}}
+function taskFields(t={},ps=[]){return[formInput("Titel *","title",t.title,"text","required"),formArea("Beschreibung","description",t.description),formSelect("Zuständig","assigned_to",t.assigned_to||"",[["","Nicht zugewiesen"],...ps.map(p=>[p.id,[p.first_name,p.last_name].filter(Boolean).join(" ")||p.id])]),formInput("Fällig","due_date",t.due_date,"date"),formSelect("Priorität","priority",t.priority||"normal",[["low","Niedrig"],["normal","Normal"],["high","Hoch"]]),formSelect("Status","status",t.status||"open",[["open","Offen"],["in_progress","In Bearbeitung"],["completed","Erledigt"]])]}
+async function newTaskModal(){const ps=await safeSelect("profiles");return modalForm("Aufgabe anlegen",x=>taskFields(x,ps),async f=>dbInsert("tasks",{title:f.get("title"),description:f.get("description")||null,assigned_to:f.get("assigned_to")||null,due_date:f.get("due_date")||null,priority:f.get("priority"),status:f.get("status")}))}
+async function editTask(id){const {data:t,error}=await rbsupabase.from("tasks").select("*").eq("id",id).single();if(error)return notify(error.message,"error");const ps=await safeSelect("profiles");return modalForm("Aufgabe bearbeiten",x=>taskFields(x,ps),async f=>dbUpdate("tasks",id,{title:f.get("title"),description:f.get("description")||null,assigned_to:f.get("assigned_to")||null,due_date:f.get("due_date")||null,priority:f.get("priority"),status:f.get("status"),completed_at:f.get("status")==="completed"?new Date().toISOString():null}),t)}
+async function renderTasks(){const rows=await safeSelect("tasks",q=>q.order("due_date")),ps=await safeSelect("profiles"),pm=Object.fromEntries(ps.map(p=>[p.id,[p.first_name,p.last_name].filter(Boolean).join(" ")||p.id]));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Aufgaben</h1><p>${rows.length}</p></div><button class="btn btn-primary" onclick="newTaskModal()">+ Aufgabe</button></div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Aufgabe</th><th>Fällig</th><th>Priorität</th><th>Zuständig</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(t=>`<tr><td>${escapeHtml(t.title)}</td><td>${formatDate(t.due_date)}</td><td>${escapeHtml(t.priority)}</td><td>${escapeHtml(pm[t.assigned_to]||"-")}</td><td>${statusBadge(t.status)}</td><td><button class="small-btn" onclick="editTask('${t.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="6">Keine Aufgaben.</td></tr>'}</tbody></table></div></div>`}
 
 /* ---------- DOCUMENTS ---------- */
-async function renderDocuments(){
- const rows=await safeSelect("documents",q=>q.order("created_at",{ascending:false}));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Dokumente</h1><p style="color:#64748b">Kunden-, Auftrags- und Equipmentdokumente</p></div><button class="btn btn-primary" onclick="newDocumentModal()">+ Dokument</button></div>
- <div class="dashboard-section"><div class="finance-warning">Dateien werden über Supabase Storage angebunden. Bis der private Storage-Bucket eingerichtet ist, können hier bereits Dokument-Metadaten und Dateipfade verwaltet werden.</div><div class="table-wrap"><table><thead><tr><th>Titel</th><th>Typ</th><th>Datei</th><th>Sichtbarkeit</th><th>Erstellt</th></tr></thead><tbody>
- ${rows.length?rows.map(d=>`<tr><td><strong>${escapeHtml(d.title)}</strong></td><td>${escapeHtml(d.document_type)}</td><td>${escapeHtml(d.file_name||d.file_path||"-")}</td><td>${statusBadge(d.visibility)}</td><td>${formatDateTime(d.created_at)}</td></tr>`).join(""):`<tr><td colspan="5"><div class="empty">Keine Dokumente.</div></td></tr>`}
- </tbody></table></div></div>`;
-}
-function newDocumentModal(){
- const mid=openDynamicModal("Dokument anlegen",`<form id="documentForm"><div class="form-grid"><div class="form-group"><label>Titel *</label><input name="title" required></div><div class="form-group"><label>Dokumenttyp</label><select name="document_type"><option>Vertrag</option><option>AGB</option><option>Rechnung</option><option>Angebot</option><option>Versicherung</option><option>Sonstiges</option></select></div><div class="form-group"><label>Dateiname</label><input name="file_name"></div><div class="form-group"><label>Dateipfad / Storage-Pfad</label><input name="file_path"></div><div class="form-group"><label>Sichtbarkeit</label><select name="visibility"><option value="internal">Intern</option><option value="customer">Kunde</option></select></div><div class="form-group"><label>Dokumentdatum</label><input name="document_date" type="date"></div><div class="form-group full"><label>Beschreibung</label><textarea name="description"></textarea></div></div><button class="btn btn-primary">Speichern</button></form>`);
- document.getElementById("documentForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),obj={};f.forEach((v,k)=>obj[k]=String(v).trim()||null);obj.created_by=currentUser?.id||null;const {error}=await rbsupabase.from("documents").insert(obj);if(error)notify(error.message,"error");else{closeDynamicModal(mid);notify("Dokument gespeichert");renderDocuments();}};
-}
+function documentFields(d={}){return[formInput("Dokumenttyp *","document_type",d.document_type,"text","required"),formInput("Dateiname *","file_name",d.file_name,"text","required"),formInput("Dateipfad / Storage-Pfad *","file_path",d.file_path,"text","required"),formInput("Datum","document_date",d.document_date,"date"),formArea("Beschreibung","description",d.description)]}
+function newDocumentModal(){return modalForm("Dokument erfassen",documentFields,async f=>dbInsert("financial_documents",Object.fromEntries(f.entries())))}
+async function editDocument(id){const {data:d,error}=await rbsupabase.from("financial_documents").select("*").eq("id",id).single();if(error)return notify(error.message,"error");return modalForm("Dokument bearbeiten",documentFields,async f=>dbUpdate("financial_documents",id,Object.fromEntries(f.entries())),d)}
+async function renderDocuments(){const rows=await safeSelect("financial_documents",q=>q.order("created_at",{ascending:false}));document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Dokumente</h1><p>${rows.length} Dokumente</p></div><button class="btn btn-primary" onclick="newDocumentModal()">+ Dokument</button></div><div class="finance-warning">Die Tabelle verwaltet Dokument-Metadaten. Für echte Datei-Uploads muss ein privater Supabase-Storage-Bucket eingerichtet werden.</div><div class="dashboard-section"><div class="table-wrap"><table><thead><tr><th>Typ</th><th>Datei</th><th>Datum</th><th>Beschreibung</th><th></th></tr></thead><tbody>${rows.map(d=>`<tr><td>${escapeHtml(d.document_type)}</td><td>${escapeHtml(d.file_name)}</td><td>${formatDate(d.document_date)}</td><td>${escapeHtml(d.description||"")}</td><td><button class="small-btn" onclick="editDocument('${d.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="5">Keine Dokumente.</td></tr>'}</tbody></table></div></div>`}
 
-/* ---------- WEBSITE / FEEDBACK ---------- */
-async function renderWebsite(){
- const news=await safeSelect("website_news",q=>q.order("sort_order").order("published_at",{ascending:false})),feedback=await safeSelect("feedback",q=>q.order("created_at",{ascending:false}));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Website / News</h1><p style="color:#64748b">Öffentliche Inhalte und Kundenbewertungen</p></div><button class="btn btn-primary" onclick="newNewsModal()">+ News</button></div>
- <div class="dashboard-section"><h2>News</h2><div class="table-wrap"><table><thead><tr><th>Titel</th><th>Veröffentlicht</th><th>Datum</th><th></th></tr></thead><tbody>${news.length?news.map(n=>`<tr><td><strong>${escapeHtml(n.title)}</strong><br><small>${escapeHtml(n.excerpt||"")}</small></td><td>${n.published?"Ja":"Nein"}</td><td>${formatDateTime(n.published_at)}</td><td><button class="small-btn primary" onclick="editNews('${n.id}')">Öffnen</button></td></tr>`).join(""):`<tr><td colspan="4"><div class="empty">Noch keine News.</div></td></tr>`}</tbody></table></div></div>
- <div class="dashboard-section"><h2>Feedback</h2><div class="table-wrap"><table><thead><tr><th>Sterne</th><th>Kommentar</th><th>Freigabe</th><th>Öffentlich</th><th></th></tr></thead><tbody>${feedback.length?feedback.map(f=>`<tr><td>${"★".repeat(f.rating)}${"☆".repeat(5-f.rating)}</td><td>${escapeHtml(f.comment||"-")}</td><td>${f.approved?"Ja":"Nein"}</td><td>${f.published?"Ja":"Nein"}</td><td><button class="small-btn" onclick="moderateFeedback('${f.id}',${!f.approved},${!f.published})">Freigeben</button></td></tr>`).join(""):`<tr><td colspan="5"><div class="empty">Noch kein Feedback.</div></td></tr>`}</tbody></table></div></div>`;
-}
-function newsForm(n={}){
- return `<form id="newsForm"><div class="form-grid"><div class="form-group full"><label>Titel *</label><input name="title" required value="${escapeHtml(n.title||"")}"></div><div class="form-group"><label>Slug</label><input name="slug" value="${escapeHtml(n.slug||"")}"></div><div class="form-group"><label>Sortierung</label><input type="number" name="sort_order" value="${escapeHtml(n.sort_order??0)}"></div><div class="form-group full"><label>Kurztext</label><textarea name="excerpt">${escapeHtml(n.excerpt||"")}</textarea></div><div class="form-group full"><label>Inhalt</label><textarea name="content">${escapeHtml(n.content||"")}</textarea></div><div class="form-group"><label>Bild-URL</label><input name="image_url" value="${escapeHtml(n.image_url||"")}"></div><div class="form-group"><label>Veröffentlicht</label><select name="published"><option value="false" ${!n.published?"selected":""}>Nein</option><option value="true" ${n.published?"selected":""}>Ja</option></select></div></div><button class="btn btn-primary">Speichern</button></form>`;
-}
-function newNewsModal(){const mid=openDynamicModal("News anlegen",newsForm());document.getElementById("newsForm").onsubmit=e=>saveNews(e,null,mid);}
-async function editNews(id){const {data,error}=await rbsupabase.from("website_news").select("*").eq("id",id).single();if(error)notify(error.message,"error");else{const mid=openDynamicModal("News bearbeiten",newsForm(data));document.getElementById("newsForm").onsubmit=e=>saveNews(e,id,mid);}}
-async function saveNews(e,id,mid){e.preventDefault();const f=new FormData(e.target),obj={title:f.get("title"),slug:f.get("slug")||null,excerpt:f.get("excerpt")||null,content:f.get("content")||null,image_url:f.get("image_url")||null,published:f.get("published")==="true",sort_order:Number(f.get("sort_order")||0),published_at:f.get("published")==="true"?new Date().toISOString():null};const res=id?await rbsupabase.from("website_news").update(obj).eq("id",id):await rbsupabase.from("website_news").insert(obj);if(res.error)notify(res.error.message,"error");else{closeDynamicModal(mid);notify("News gespeichert");renderWebsite();loadPublicNews();}}
-async function moderateFeedback(id,approved,published){const {error}=await rbsupabase.from("feedback").update({approved,published}).eq("id",id);if(error)notify(error.message,"error");else renderWebsite();}
+/* ---------- WEBSITE / NEWS ---------- */
+function newsFields(n={}){return[formInput("Titel *","title",n.title,"text","required"),formInput("Slug","slug",n.slug),formInput("Kurztext","excerpt",n.excerpt),formArea("Inhalt","content",n.content),formInput("Sortierung","sort_order",n.sort_order??0,"number"),formSelect("Veröffentlicht","published",String(n.published),[["true","Ja"],["false","Nein"]])]}
+function newNewsModal(){return modalForm("News erstellen",newsFields,async f=>{const pub=f.get("published")==="true";return dbInsert("website_news",{title:f.get("title"),slug:f.get("slug")||null,excerpt:f.get("excerpt")||null,content:f.get("content")||null,sort_order:Number(f.get("sort_order")||0),published:pub,published_at:pub?new Date().toISOString():null})})}
+async function editNews(id){const {data:n,error}=await rbsupabase.from("website_news").select("*").eq("id",id).single();if(error)return notify(error.message,"error");return modalForm("News bearbeiten",newsFields,async f=>{const pub=f.get("published")==="true";return dbUpdate("website_news",id,{title:f.get("title"),slug:f.get("slug")||null,excerpt:f.get("excerpt")||null,content:f.get("content")||null,sort_order:Number(f.get("sort_order")||0),published:pub,published_at:pub?(n.published_at||new Date().toISOString()):null})},n)}
+async function moderateFeedback(id,approved,published){try{await dbUpdate("feedback",id,{approved,published});notify("Feedback aktualisiert");await renderWebsite()}catch(e){notify(e.message,"error")}}
+async function renderWebsite(){const [news,fb]=await Promise.all([safeSelect("website_news",q=>q.order("sort_order").order("published_at",{ascending:false})),safeSelect("feedback",q=>q.order("created_at",{ascending:false}))]);document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Website / News</h1><p>Öffentliche Inhalte & Bewertungen</p></div><button class="btn btn-primary" onclick="newNewsModal()">+ News</button></div><div class="dashboard-section"><h2>News</h2><div class="table-wrap"><table><thead><tr><th>Titel</th><th>Veröffentlicht</th><th>Datum</th><th></th></tr></thead><tbody>${news.map(n=>`<tr><td>${escapeHtml(n.title)}</td><td>${n.published?"Ja":"Nein"}</td><td>${formatDateTime(n.published_at)}</td><td><button class="small-btn" onclick="editNews('${n.id}')">Öffnen</button></td></tr>`).join("")||'<tr><td colspan="4">Keine News.</td></tr>'}</tbody></table></div></div><div class="dashboard-section"><h2>Feedback</h2>${fb.map(x=>`<div class="calendar-event"><div><strong>${"★".repeat(Number(x.rating||0))}</strong><br>${escapeHtml(x.comment||"")}<br><small>${statusBadge(x.approved?"freigegeben":"nicht freigegeben")} ${x.published?"· veröffentlicht":""}</small></div><div><button class="small-btn" onclick="moderateFeedback('${x.id}',true,true)">Freigeben</button><button class="small-btn" onclick="moderateFeedback('${x.id}',false,false)">Verbergen</button></div></div>`).join("")||"Kein Feedback."}</div>`}
 
 /* ---------- FINANCE ---------- */
-async function renderFinance(){
- const [invoices,expenses,transactions,accounts,cash,shareholders,taxes,docs]=await Promise.all(["invoices","expenses","bank_transactions","bank_accounts","cashbook_entries","shareholder_accounts","tax_entries","financial_documents"].map(t=>safeSelect(t)));
- const revenue=invoices.reduce((s,x)=>s+Number(x.subtotal_net||0),0),vatSales=invoices.reduce((s,x)=>s+Number(x.vat_amount||0),0),expenseNet=expenses.reduce((s,x)=>s+Number(x.net_amount||0),0),expenseVat=expenses.reduce((s,x)=>s+Number(x.vat_amount||0),0);
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>🔒 Finanzen & Verwaltung</h1><p style="color:#64748b">Interner Finanzbereich</p></div></div>
- <div class="finance-warning"><strong>Hinweis:</strong> Diese Anwendung unterstützt eure interne Finanzverwaltung. Sie ersetzt keine GoBD-konforme Buchhaltungssoftware und keine steuerliche Prüfung. Besonders Umsatzsteuer/EÜR bitte mit eurem Steuerberater abstimmen.</div>
- <div class="metric-grid"><div class="metric"><div class="metric-label">Rechnungsumsatz netto</div><div class="metric-value">${formatMoney(revenue)}</div></div><div class="metric"><div class="metric-label">USt aus Rechnungen</div><div class="metric-value">${formatMoney(vatSales)}</div></div><div class="metric"><div class="metric-label">Ausgaben netto</div><div class="metric-value">${formatMoney(expenseNet)}</div></div><div class="metric"><div class="metric-label">Vorsteuer Ausgaben</div><div class="metric-value">${formatMoney(expenseVat)}</div></div></div>
- <div class="dashboard-grid">
- ${[
- ["bank_accounts","🏦","Bankkonten",accounts.length],["bank_transactions","💳","Banktransaktionen",transactions.length],["expenses","🧾","Ausgaben",expenses.length],["cashbook_entries","💶","Kassenbuch",cash.length],
- ["shareholder_accounts","👥","Gesellschafter",shareholders.length],["tax_entries","🏛️","Steuern",taxes.length],["financial_documents","📁","Finanzdokumente",docs.length],["audit_log","🛡️","Audit-Log","intern"]
- ].map(x=>`<div class="dash-card" onclick="renderFinanceTable('${x[0]}','${x[2]}')"><div class="dash-icon">${x[1]}</div><h3>${x[2]}</h3><p>${x[3]} Einträge</p></div>`).join("")}
- </div>
- <div class="dashboard-section"><h2>USt-Übersicht</h2><p>USt aus Rechnungen: <strong>${formatMoney(vatSales)}</strong> · Vorsteuer aus erfassten Ausgaben: <strong>${formatMoney(expenseVat)}</strong> · rechnerische Differenz: <strong>${formatMoney(vatSales-expenseVat)}</strong></p></div>`;
-}
-async function renderFinanceTable(table,title){
- const rows=await safeSelect(table,q=>q.limit(300));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>${escapeHtml(title)}</h1><p style="color:#64748b">${rows.length} Einträge</p></div><button class="small-btn" onclick="renderFinance()">← Finanzen</button></div>
- <div class="dashboard-section"><div class="table-wrap">${rows.length?`<table><thead><tr>${Object.keys(rows[0]).map(c=>`<th>${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${Object.keys(rows[0]).map(c=>`<td>${cell(r[c],c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`:`<div class="empty">Keine Einträge.</div>`}</div></div>`;
-}
+const FINANCE_FIELDS={bank_accounts:d=>[formInput("Name *","name",d.name,"text","required"),formInput("Kontotyp *","account_type",d.account_type,"text","required"),formInput("IBAN","iban",d.iban),formInput("Bank","bank_name",d.bank_name),formInput("Eröffnungssaldo","opening_balance",d.opening_balance||0,"number","step=0.01"),formSelect("Aktiv","active",String(d.active??true),[["true","Ja"],["false","Nein"]]),formArea("Notizen","notes",d.notes)],expenses:d=>[formInput("Datum *","expense_date",d.expense_date||todayISO(),"date","required"),formInput("Beschreibung *","description",d.description,"text","required"),formInput("Lieferant","supplier",d.supplier),formInput("Netto","net_amount",d.net_amount||0,"number","step=0.01"),formInput("USt %","vat_rate",d.vat_rate??19,"number","step=0.01"),formInput("USt Betrag","vat_amount",d.vat_amount||0,"number","step=0.01"),formInput("Brutto","gross_amount",d.gross_amount||0,"number","step=0.01"),formInput("Kategorie","category",d.category),formInput("Zahlungsart","payment_method",d.payment_method),formInput("Belegpfad","receipt_file_path",d.receipt_file_path),formArea("Notizen","notes",d.notes)],cashbook_entries:d=>[formInput("Datum *","entry_date",d.entry_date||todayISO(),"date","required"),formInput("Beschreibung *","description",d.description,"text","required"),formSelect("Typ","entry_type",d.entry_type||"income",[["income","Einnahme"],["expense","Ausgabe"]]),formInput("Betrag","amount",d.amount||0,"number","step=0.01"),formInput("Kategorie","category",d.category),formInput("Belegnummer","receipt_number",d.receipt_number),formArea("Notizen","notes",d.notes)],tax_entries:d=>[formInput("Datum *","entry_date",d.entry_date||todayISO(),"date","required"),formInput("Steuerjahr *","tax_year",d.tax_year||new Date().getFullYear(),"number","required"),formInput("Steuerart *","tax_type",d.tax_type,"text","required"),formInput("Betrag","amount",d.amount||0,"number","step=0.01"),formInput("Beschreibung","description",d.description),formInput("Referenz","reference",d.reference)],shareholder_accounts:d=>[formSelect("Gesellschafter","profile_id",d.profile_id||"",[["","Bitte wählen"]]),formInput("Datum *","entry_date",d.entry_date||todayISO(),"date","required"),formSelect("Typ","entry_type",d.entry_type||"withdrawal",[["withdrawal","Entnahme"],["contribution","Einlage"],["expense","Ausgabe"]]),formInput("Betrag","amount",d.amount||0,"number","step=0.01"),formInput("Beschreibung *","description",d.description,"text","required"),formInput("Referenz","reference",d.reference)]};
+async function financeModal(table,id=null){let d={};if(id){const r=await rbsupabase.from(table).select("*").eq("id",id).single();if(r.error)throw r.error;d=r.data}let fields=FINANCE_FIELDS[table];if(table==="shareholder_accounts"){const ps=await safeSelect("profiles");fields=x=>[formSelect("Gesellschafter","profile_id",x.profile_id||"",[["","Bitte wählen"],...ps.map(p=>[p.id,[p.first_name,p.last_name].filter(Boolean).join(" ")||p.id])]),...FINANCE_FIELDS[table](x).slice(1)]}return modalForm((id?"Bearbeiten: ":"Neu: ")+LABELS[table],fields,async f=>{const obj=Object.fromEntries(f.entries());for(const k of ["opening_balance","net_amount","vat_rate","vat_amount","gross_amount","amount","tax_year"])if(obj[k]!==undefined)obj[k]=Number(obj[k]);if(obj.active!==undefined)obj.active=obj.active==="true";if(id)return dbUpdate(table,id,obj);return dbInsert(table,obj)},d)}
+async function renderFinance(){const [inv,exp,tx,ba,cash,sh,tax]=await Promise.all(["invoices","expenses","bank_transactions","bank_accounts","cashbook_entries","shareholder_accounts","tax_entries"].map(t=>safeSelect(t)));const revenue=inv.reduce((s,x)=>s+Number(x.subtotal_net||0),0),vat=inv.reduce((s,x)=>s+Number(x.vat_amount||0),0),en=exp.reduce((s,x)=>s+Number(x.net_amount||0),0),ev=exp.reduce((s,x)=>s+Number(x.vat_amount||0),0);document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>🔒 Finanzen & Verwaltung</h1><p>Interne Finanzverwaltung</p></div></div><div class="finance-warning"><strong>Hinweis:</strong> Das ersetzt keine GoBD-Buchhaltungssoftware und keine steuerliche Beratung.</div><div class="metric-grid"><div class="metric"><div class="metric-label">Rechnungsumsatz netto</div><div class="metric-value">${formatMoney(revenue)}</div></div><div class="metric"><div class="metric-label">USt aus Rechnungen</div><div class="metric-value">${formatMoney(vat)}</div></div><div class="metric"><div class="metric-label">Ausgaben netto</div><div class="metric-value">${formatMoney(en)}</div></div><div class="metric"><div class="metric-label">Vorsteuer</div><div class="metric-value">${formatMoney(ev)}</div></div></div>${financeSection("Bankkonten","bank_accounts",ba,["name","account_type","bank_name","iban","opening_balance"])}${financeSection("Ausgaben","expenses",exp,["expense_date","description","supplier","net_amount","vat_amount","gross_amount"])}${financeSection("Kassenbuch","cashbook_entries",cash,["entry_date","description","entry_type","amount","category"])}${financeSection("Gesellschafterkonten","shareholder_accounts",sh,["profile_id","entry_date","entry_type","amount","description"])}${financeSection("Steuereinträge","tax_entries",tax,["entry_date","tax_year","tax_type","amount","description"])}${financeSection("Banktransaktionen","bank_transactions",tx,["transaction_date","description","amount","transaction_type","matched"])}`}
+function financeSection(title,table,rows,cols){return`<div class="dashboard-section"><div class="page-header" style="margin-bottom:12px"><h2>${title}</h2><button class="small-btn primary" onclick="financeModal('${table}')">+ Hinzufügen</button></div><div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${escapeHtml(c)}</th>`).join("")}<th></th></tr></thead><tbody>${rows.slice(0,30).map(r=>`<tr>${cols.map(c=>`<td>${c.includes("amount")||c.includes("balance")?formatMoney(r[c]):c.includes("date")?formatDate(r[c]):c==="matched"?(r[c]?"Ja":"Nein"):escapeHtml(r[c]??"")}</td>`).join("")}<td>${table!=="bank_transactions"?`<button class="small-btn" onclick="financeModal('${table}','${r.id}')">Öffnen</button>`:""}</td></tr>`).join("")||`<tr><td colspan="${cols.length+1}">Keine Einträge.</td></tr>`}</tbody></table></div></div>`}
 
-/* ---------- SETTINGS / AUDIT ---------- */
-async function renderSettings(){
- const {data:userData}=await rbsupabase.auth.getUser();
- const profile=currentProfile||{};
- const audit=await safeSelect("audit_log",q=>q.order("created_at",{ascending:false}).limit(10));
- document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Einstellungen</h1><p style="color:#64748b">Benutzer, Sicherheit und Systeminformationen</p></div></div>
- <div class="dashboard-section"><h2>Aktueller Benutzer</h2><p><strong>E-Mail:</strong> ${escapeHtml(userData?.user?.email||"-")}</p><p><strong>Rolle:</strong> ${statusBadge(profile.role||"-")}</p><p><strong>Profil:</strong> ${escapeHtml([profile.first_name,profile.last_name].filter(Boolean).join(" ")||"-")}</p>
- <div class="finance-warning"><strong>Sicherheit:</strong> Für die internen Benutzer ist in Supabase bereits TOTP-MFA aktiviert. Die zusätzliche Erzwingung einer MFA-Prüfung für den Finanzbereich bauen wir als nächsten Sicherheitsschritt ein.</div></div>
- <div class="dashboard-section"><h2>Letzte Systemänderungen</h2>${audit.length?`<div class="table-wrap"><table><thead><tr><th>Zeit</th><th>Aktion</th><th>Tabelle</th><th>Datensatz</th></tr></thead><tbody>${audit.map(a=>`<tr><td>${formatDateTime(a.created_at)}</td><td>${escapeHtml(a.action)}</td><td>${escapeHtml(a.table_name)}</td><td>${escapeHtml(a.record_id||"-")}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Noch keine Audit-Einträge.</div>`}</div>`;
-}
+/* ---------- SETTINGS ---------- */
+async function renderSettings(){const {data:{user}}=await rbsupabase.auth.getUser();const {data:p}=await rbsupabase.from("profiles").select("*").eq("id",user.id).maybeSingle();document.getElementById("internalContent").innerHTML=`<div class="page-header"><div><h1>Einstellungen</h1><p>Benutzer & System</p></div></div><div class="dashboard-section"><h2>Mein Profil</h2><div class="form-grid">${formInput("Vorname","first_name",p?.first_name||"")}${formInput("Nachname","last_name",p?.last_name||"")}</div><button class="btn btn-primary" onclick="saveProfile()">Profil speichern</button></div><div class="dashboard-section"><h2>Login</h2><p>${escapeHtml(user.email)}</p><p>Rolle: ${escapeHtml(p?.role||"")}</p><p>Die zusätzliche TOTP-MFA kann in Supabase Auth verwaltet werden.</p></div>`}
+async function saveProfile(){const first=document.querySelector('#internalContent input[name="first_name"]').value,last=document.querySelector('#internalContent input[name="last_name"]').value;try{await dbUpdate("profiles",currentUser.id,{first_name:first,last_name:last});currentProfile={...currentProfile,first_name:first,last_name:last};document.getElementById("internalUserName").textContent=[first,last].filter(Boolean).join(" ")||currentUser.email;notify("Profil gespeichert")}catch(e){notify(e.message,"error")}}
 
 /* ---------- CUSTOMER PORTAL ---------- */
-async function showCustomerPortal(user,profile){
- document.getElementById("publicSite").classList.add("hidden");document.getElementById("internalApp").classList.add("hidden");document.getElementById("customerPortal").classList.remove("hidden");
- const content=document.getElementById("customerPortalContent");
- const {data:customer,error}=await rbsupabase.from("customers").select("*").eq("user_id",user.id).maybeSingle();
- if(error){content.innerHTML=errorBox(error);return;}currentCustomer=customer;
- if(!customer){content.innerHTML=`<div class="portal-card"><h3>Noch kein Kundenprofil</h3><p>Dein Login ist eingerichtet, aber noch keinem Kundenprofil zugeordnet.</p></div>`;return;}
- const [orders,inquiries,offers,invoices,docs]=await Promise.all([
-  safeSelect("orders",q=>q.eq("customer_id",customer.id).order("event_date")),
-  safeSelect("inquiries",q=>q.eq("customer_id",customer.id).order("created_at",{ascending:false})),
-  safeSelect("offers",q=>q.eq("customer_id",customer.id).order("created_at",{ascending:false})),
-  safeSelect("invoices",q=>q.eq("customer_id",customer.id).order("invoice_date",{ascending:false})),
-  safeSelect("documents",q=>q.eq("visibility","customer").eq("customer_id",customer.id).order("created_at",{ascending:false}))
- ]);
- const music=orders.length?await safeSelect("music_requests",q=>q.in("order_id",orders.map(o=>o.id)).order("requested_at",{ascending:false})):[], feedback=await safeSelect("feedback",q=>q.eq("customer_id",customer.id));
- content.innerHTML=`<div class="portal-grid">
- <div class="portal-card"><h3>👤 Meine Daten</h3><p><strong>${escapeHtml(customerName(customer))}</strong></p><p>${escapeHtml(customer.email||"")}</p><p>${escapeHtml(customer.phone||"")}</p></div>
- <div class="portal-card"><h3>📋 Aufträge</h3><div style="font-size:28px;font-weight:900">${orders.length}</div><p>Aufträge</p></div>
- <div class="portal-card"><h3>📝 Angebote</h3><div style="font-size:28px;font-weight:900">${offers.length}</div><p>Angebote</p></div>
- <div class="portal-card"><h3>🧾 Rechnungen</h3><div style="font-size:28px;font-weight:900">${invoices.length}</div><p>Rechnungen</p></div>
- </div>
- <div class="dashboard-section"><h2>Meine Veranstaltungen</h2>${orders.length?`<div class="table-wrap"><table><thead><tr><th>Datum</th><th>Art</th><th>Ort</th><th>Status</th><th></th></tr></thead><tbody>${orders.map(o=>`<tr><td>${formatDate(o.event_date)}</td><td>${escapeHtml(o.event_type||"-")}</td><td>${escapeHtml(o.event_location||"-")}</td><td>${statusBadge(o.status)}</td><td><button class="small-btn primary" onclick="customerOrderDetail('${o.id}')">Details</button></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Noch keine gebuchten Veranstaltungen.</div>`}</div>
- <div class="dashboard-section"><h2>Meine Angebote</h2>${offers.length?`<div class="table-wrap"><table><thead><tr><th>Nummer</th><th>Gültig bis</th><th>Brutto</th><th>Status</th></tr></thead><tbody>${offers.map(o=>`<tr><td>${escapeHtml(o.offer_number||"-")}</td><td>${formatDate(o.valid_until)}</td><td>${formatMoney(o.total_gross)}</td><td>${statusBadge(o.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Keine Angebote.</div>`}</div>
- <div class="dashboard-section"><h2>Meine Rechnungen</h2>${invoices.length?`<div class="table-wrap"><table><thead><tr><th>Nummer</th><th>Rechnungsdatum</th><th>Fällig</th><th>Brutto</th><th>Offen</th><th>Status</th></tr></thead><tbody>${invoices.map(i=>`<tr><td>${escapeHtml(i.invoice_number||"-")}</td><td>${formatDate(i.invoice_date)}</td><td>${formatDate(i.due_date)}</td><td>${formatMoney(i.total_gross)}</td><td>${formatMoney(i.amount_open)}</td><td>${statusBadge(i.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Keine Rechnungen.</div>`}</div>
- <div class="dashboard-section"><h2>Musikwünsche</h2>${music.length?`<div class="table-wrap"><table><thead><tr><th>Song</th><th>Künstler</th><th>Status</th></tr></thead><tbody>${music.slice(0,20).map(m=>`<tr><td>${escapeHtml(m.song_title)}</td><td>${escapeHtml(m.artist||"-")}</td><td>${statusBadge(m.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Noch keine Musikwünsche.</div>`}</div>
- <div class="dashboard-section"><h2>Dokumente</h2>${docs.length?docs.map(d=>`<p>📄 <strong>${escapeHtml(d.title)}</strong> · ${escapeHtml(d.file_name||d.file_path||"")}</p>`).join(""):`<div class="empty">Keine freigegebenen Dokumente.</div>`}</div>
- <div class="dashboard-section"><h2>Feedback</h2>${feedback.length?feedback.map(f=>`<p>${"★".repeat(f.rating)}${"☆".repeat(5-f.rating)} · ${escapeHtml(f.comment||"")}</p>`).join(""):`<button class="small-btn primary" onclick="customerFeedbackModal()">⭐ Bewertung abgeben</button>`}</div>`;
-}
-async function customerOrderDetail(id){
- const {data:o,error}=await rbsupabase.from("orders").select("*").eq("id",id).single();if(error){notify(error.message,"error");return;}
- const music=await safeSelect("music_requests",q=>q.eq("order_id",id).order("requested_at",{ascending:false}));
- const qr=`${location.origin}${location.pathname}?music=${encodeURIComponent(id)}`;
- openDynamicModal("Veranstaltung",`<div class="dashboard-section"><h3>${escapeHtml(o.event_type||"Veranstaltung")}</h3><p><strong>Datum:</strong> ${formatDate(o.event_date)}</p><p><strong>Ort:</strong> ${escapeHtml(o.event_location||"-")}</p><p><strong>Status:</strong> ${statusBadge(o.status)}</p><p><strong>Musikwünsche:</strong><br>${escapeHtml(o.music_wishes||"-")}</p><h3>QR-Link für Gäste</h3><input readonly value="${escapeHtml(qr)}" onclick="this.select()"><p style="color:#64748b">Diesen Link könnt ihr als QR-Code auf Tischen/Displays ausgeben.</p><h3>Aktuelle Wünsche</h3>${music.length?music.map(m=>`<p>🎵 ${escapeHtml(m.song_title)} – ${escapeHtml(m.artist||"")} ${statusBadge(m.status)}</p>`).join(""):`<p>Noch keine.</p>`}</div>`);
-}
-function customerFeedbackModal(){
- const mid=openDynamicModal("Feedback",`<form id="feedbackForm"><div class="form-group"><label>Sterne</label><select name="rating"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></div><div class="form-group" style="margin-top:15px"><label>Kommentar</label><textarea name="comment" required></textarea></div><label class="check" style="margin-top:12px"><input type="checkbox" name="consent"> Ich bin damit einverstanden, dass mein Feedback öffentlich angezeigt werden darf.</label><button class="btn btn-primary" style="margin-top:18px">Absenden</button></form>`);
- document.getElementById("feedbackForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const {error}=await rbsupabase.from("feedback").insert({customer_id:currentCustomer.id,rating:Number(f.get("rating")),comment:f.get("comment"),display_consent:f.get("consent")==="on",approved:false,published:false});if(error)notify(error.message,"error");else{closeDynamicModal(mid);notify("Vielen Dank für dein Feedback");showCustomerPortal(currentUser,currentProfile);}};
-}
+async function showCustomerPortal(user,profile){document.getElementById("publicSite").classList.add("hidden");document.getElementById("internalApp").classList.add("hidden");document.getElementById("customerPortal").classList.remove("hidden");const {data:c}=await rbsupabase.from("customers").select("*").eq("user_id",user.id).maybeSingle();currentCustomer=c;const orders=c?await safeSelect("orders",q=>q.eq("customer_id",c.id).order("event_date")):[];const offers=c?await safeSelect("offers",q=>q.eq("customer_id",c.id)):[];const invoices=c?await safeSelect("invoices",q=>q.eq("customer_id",c.id)):[];document.getElementById("customerPortalContent").innerHTML=`<div class="page-header"><div><h1>Hallo ${escapeHtml(customerName(c))} 👋</h1><p>Dein Kundenbereich</p></div><button class="btn" onclick="logout()">Abmelden</button></div><div class="dashboard-grid"><div class="dash-card"><h3>📋 Aufträge</h3><p>${orders.length}</p></div><div class="dash-card"><h3>📝 Angebote</h3><p>${offers.length}</p></div><div class="dash-card"><h3>🧾 Rechnungen</h3><p>${invoices.length}</p></div></div><div class="dashboard-section"><h2>Meine Aufträge</h2>${orders.map(o=>`<div class="calendar-event"><div><strong>${escapeHtml(o.order_number||o.event_type||"Auftrag")}</strong><br>${formatDate(o.event_date)} · ${escapeHtml(o.event_location||"")}<br>${statusBadge(o.status)}</div><button class="small-btn" onclick="customerOrderDetail('${o.id}')">Details</button></div>`).join("")||"Keine Aufträge."}</div><div class="dashboard-section"><h2>Meine Angebote</h2>${offers.map(o=>`<div class="calendar-event"><div><strong>${escapeHtml(o.offer_number||"Angebot")}</strong><br>${formatMoney(o.total_gross)} · ${statusBadge(o.status)}</div></div>`).join("")||"Keine Angebote."}</div><div class="dashboard-section"><h2>Meine Rechnungen</h2>${invoices.map(i=>`<div class="calendar-event"><div><strong>${escapeHtml(i.invoice_number||"Rechnung")}</strong><br>${formatMoney(i.total_gross)} · offen ${formatMoney(i.amount_open)} · ${statusBadge(i.status)}</div></div>`).join("")||"Keine Rechnungen."}</div><div class="dashboard-section"><button class="btn btn-primary" onclick="customerFeedbackModal()">⭐ Feedback abgeben</button></div>`}
+async function customerOrderDetail(id){const {data:o,error}=await rbsupabase.from("orders").select("*").eq("id",id).single();if(error)return notify(error.message,"error");const m=await rbsupabase.from("music_requests").select("*").eq("order_id",id);openDynamicModal("Auftrag",`<p>${formatDate(o.event_date)} · ${escapeHtml(o.event_location||"")}</p><p>${escapeHtml(o.music_wishes||"")}</p><h3>Musikwünsche</h3>${(m.data||[]).map(x=>`<p>${escapeHtml(x.song_title)} – ${escapeHtml(x.artist||"")} ${statusBadge(x.status)}</p>`).join("")||"Keine Wünsche."}`)}
+function customerFeedbackModal(){if(!currentCustomer)return notify("Kein Kundenprofil gefunden","error");const mid=openDynamicModal("Feedback",`<form id="feedbackForm"><div class="form-group"><label>Sterne</label><select name="rating"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></div><div class="form-group"><label>Kommentar</label><textarea name="comment" required></textarea></div><label class="check"><input type="checkbox" name="consent"> Veröffentlichung erlauben</label><button class="btn btn-primary" style="margin-top:15px">Absenden</button></form>`);document.getElementById("feedbackForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{await dbInsert("feedback",{customer_id:currentCustomer.id,rating:Number(f.get("rating")),comment:f.get("comment"),display_consent:f.get("consent")==="on",approved:false,published:false});closeDynamicModal(mid);notify("Vielen Dank für dein Feedback")}catch(err){notify(err.message,"error")}}}
 
-/* ---------- GLOBAL ---------- */
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeLogin();closeInquiryForm();closeAllDynamicModals();}});
-window.addEventListener("load",()=>{loadPublicNews();initApp();});
+/* ---------- ESCAPE / START ---------- */
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeLogin();closeInquiryForm();closeAllDynamicModals()}});
+window.addEventListener("load",initApp);
 </script>
 </body>
 </html>
