@@ -1,1 +1,201 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuhrGeBeats</title>
 
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f6;
+            color: #171717;
+        }
+
+        header {
+            background: #111111;
+            color: white;
+            padding: 22px;
+        }
+
+        header h1 {
+            font-size: 26px;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            margin-top: 5px;
+            color: #bbbbbb;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: auto;
+            padding: 25px;
+        }
+
+        .welcome {
+            margin-bottom: 25px;
+        }
+
+        .welcome h2 {
+            font-size: 25px;
+            margin-bottom: 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 22px;
+            min-height: 130px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+        }
+
+        .icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .card h3 {
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .card p {
+            color: #777;
+            font-size: 14px;
+        }
+
+        .status {
+            margin-top: 30px;
+            background: white;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        }
+
+        .status h3 {
+            margin-bottom: 15px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>RUHRGEBEATS</h1>
+    <p>DJ Business Center</p>
+</header>
+
+<main>
+
+    <section class="welcome">
+        <h2>Willkommen 👋</h2>
+        <p>Hier verwaltet ihr eure komplette RuhrGeBeats-GbR.</p>
+    </section>
+
+    <section class="grid">
+
+        <div class="card">
+            <div class="icon">👥</div>
+            <h3>Kunden</h3>
+            <p>Kunden und Kontakte verwalten</p>
+        </div>
+
+        <div class="card">
+            <div class="icon">📋</div>
+            <h3>Aufträge</h3>
+            <p>Anfragen und Veranstaltungen</p>
+        </div>
+
+        <div class="card">
+            <div class="icon">📅</div>
+            <h3>Kalender</h3>
+            <p>Termine und Veranstaltungen</p>
+        </div>
+
+        <div class="card">
+            <div class="icon">💰</div>
+            <h3>Finanzen</h3>
+            <p>Einnahmen und Ausgaben</p>
+        </div>
+
+        <div class="card">
+            <div class="icon">🧾</div>
+            <h3>Rechnungen</h3>
+            <p>Angebote und Rechnungen</p>
+        </div>
+
+        <div class="card">
+            <div class="icon">🎧</div>
+            <h3>Equipment</h3>
+            <p>DJ- und Lichttechnik</p>
+        </div>
+
+        <div class="card">
+            <div class="icon">📊</div>
+            <h3>Auswertungen</h3>
+            <p>Umsatz, Gewinn und Statistiken</p>
+        </div>
+
+        <div class="card">
+            <div class="icon">⚙️</div>
+            <h3>Einstellungen</h3>
+            <p>Firma und Benutzer</p>
+        </div>
+
+    </section>
+
+    <section class="status">
+        <h3>Aktueller Überblick</h3>
+
+        <div class="status-row">
+            <span>Offene Kundenanfragen</span>
+            <strong>0</strong>
+        </div>
+
+        <div class="status-row">
+            <span>Anstehende Aufträge</span>
+            <strong>0</strong>
+        </div>
+
+        <div class="status-row">
+            <span>Offene Rechnungen</span>
+            <strong>0 €</strong>
+        </div>
+
+    </section>
+
+</main>
+
+</body>
+</html>
