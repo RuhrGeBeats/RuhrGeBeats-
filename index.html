@@ -4,24 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>RuhrGeBeats – DJ & Veranstaltungstechnik im Ruhrgebiet</title>
+  <title>RuhrGeBeats – DJ für dein Event</title>
 
   <meta
     name="description"
-    content="RuhrGeBeats – DJ & Veranstaltungstechnik für Hochzeiten, Geburtstage und private Veranstaltungen im Ruhrgebiet und NRW."
+    content="RuhrGeBeats – DJ & Veranstaltungstechnik für Geburtstage, Hochzeiten und private Veranstaltungen im Ruhrgebiet und NRW."
   >
+
+  <meta name="theme-color" content="#07111f">
 
   <style>
     :root {
-      --blue: #1267d8;
-      --blue-dark: #0b4fae;
-      --navy: #071426;
-      --text: #122033;
-      --muted: #687386;
-      --light: #f5f8fc;
-      --white: #ffffff;
-      --border: #e3e9f1;
-      --shadow: 0 18px 50px rgba(8, 29, 57, 0.08);
+      --blue: #168cff;
+      --blue-dark: #0870d8;
+      --navy: #07111f;
+      --text: #111827;
+      --muted: #64748b;
+      --light: #f5f7fa;
+      --white: #fff;
+      --border: #e5eaf0;
+      --max: 1180px;
+      --radius: 18px;
+      --shadow: 0 18px 50px rgba(7,17,31,.10);
     }
 
     * {
@@ -37,16 +41,16 @@
     body {
       font-family:
         Inter,
+        ui-sans-serif,
+        system-ui,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
-        Roboto,
-        Helvetica,
-        Arial,
         sans-serif;
       color: var(--text);
-      background: var(--white);
+      background: white;
       line-height: 1.6;
+      overflow-x: hidden;
     }
 
     a {
@@ -54,210 +58,189 @@
       text-decoration: none;
     }
 
-    img {
-      max-width: 100%;
-      display: block;
-    }
-
     button,
     input,
-    select,
-    textarea {
+    textarea,
+    select {
       font: inherit;
     }
 
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
     .container {
-      width: min(1180px, calc(100% - 40px));
+      width: min(var(--max), calc(100% - 40px));
       margin: 0 auto;
     }
 
-    /* =======================================================
+
+    /* =====================================================
        HEADER
-       ======================================================= */
+       ===================================================== */
 
     header {
       position: fixed;
       top: 0;
       left: 0;
-      right: 0;
+      width: 100%;
       z-index: 1000;
-      padding: 18px 0;
-      transition: 0.25s ease;
+      transition: .3s ease;
     }
 
     header.scrolled {
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(14px);
-      box-shadow: 0 8px 30px rgba(8, 29, 57, 0.07);
+      background: rgba(7,17,31,.94);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 10px 35px rgba(0,0,0,.16);
     }
 
     .nav {
+      height: 82px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      gap: 30px;
     }
 
     .logo img {
-      width: 54px;
-      height: 54px;
+      width: 58px;
+      height: 58px;
       object-fit: contain;
-    }
-
-    .logo-fallback {
-      display: none;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      font-size: 17px;
     }
 
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 30px;
+      gap: 28px;
       list-style: none;
     }
 
     .nav-links a {
+      color: rgba(255,255,255,.86);
       font-size: 14px;
       font-weight: 600;
-      color: var(--text);
-      transition: color 0.2s ease;
+      transition: color .2s ease;
     }
 
     .nav-links a:hover {
       color: var(--blue);
     }
 
-    .nav-links .nav-cta {
-      color: var(--white);
+    .nav-cta {
       background: var(--blue);
-      padding: 11px 19px;
-      border-radius: 8px;
+      color: white !important;
+      padding: 12px 19px;
+      border-radius: 9px;
+      box-shadow: 0 8px 25px rgba(22,140,255,.25);
     }
 
-    .nav-links .nav-cta:hover {
-      color: var(--white);
-      background: var(--blue-dark);
+    .nav-cta:hover {
+      background: #329aff;
     }
 
     .mobile-toggle {
       display: none;
       border: 0;
       background: transparent;
-      font-size: 28px;
+      color: white;
+      font-size: 29px;
       cursor: pointer;
-      color: var(--navy);
     }
 
-    /* =======================================================
-       BUTTONS
-       ======================================================= */
 
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 52px;
-      padding: 0 25px;
-      border-radius: 9px;
-      font-weight: 700;
-      font-size: 14px;
-      border: 1px solid transparent;
-      transition:
-        transform 0.2s ease,
-        background 0.2s ease,
-        color 0.2s ease,
-        box-shadow 0.2s ease;
-    }
-
-    .button:hover {
-      transform: translateY(-2px);
-    }
-
-    .button-primary {
-      background: var(--blue);
-      color: var(--white);
-      box-shadow: 0 12px 25px rgba(18, 103, 216, 0.2);
-    }
-
-    .button-primary:hover {
-      background: var(--blue-dark);
-    }
-
-    .button-secondary {
-      background: var(--white);
-      color: var(--text);
-      border-color: var(--border);
-    }
-
-    .button-secondary:hover {
-      border-color: var(--blue);
-      color: var(--blue);
-    }
-
-    /* =======================================================
+    /* =====================================================
        HERO
-       ======================================================= */
+       ===================================================== */
 
     .hero {
-      min-height: 760px;
+      position: relative;
+      min-height: 100vh;
       display: flex;
       align-items: center;
-      position: relative;
-      overflow: hidden;
+
       background:
+        radial-gradient(
+          circle at 75% 45%,
+          rgba(22,140,255,.22),
+          transparent 30%
+        ),
         linear-gradient(
           135deg,
-          #f7faff 0%,
-          #ffffff 55%,
-          #eef5ff 100%
+          #050b14 0%,
+          #081423 52%,
+          #07111f 100%
         );
-      padding-top: 100px;
+
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .18;
+
+      background-image:
+        linear-gradient(
+          rgba(255,255,255,.04) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          90deg,
+          rgba(255,255,255,.04) 1px,
+          transparent 1px
+        );
+
+      background-size: 55px 55px;
+      mask-image:
+        linear-gradient(to bottom, black, transparent);
     }
 
     .hero-glow {
       position: absolute;
-      width: 650px;
-      height: 650px;
-      right: -220px;
-      top: 50%;
-      transform: translateY(-50%);
+      width: 500px;
+      height: 500px;
+      right: -160px;
+      top: 10%;
+      background: rgba(22,140,255,.15);
+      filter: blur(90px);
       border-radius: 50%;
-      background: rgba(18, 103, 216, 0.07);
-      filter: blur(2px);
     }
 
     .hero-content {
       position: relative;
       z-index: 2;
-      max-width: 790px;
-    }
-
-    .eyebrow,
-    .section-label {
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--blue);
+      padding: 150px 0 100px;
+      max-width: 760px;
     }
 
     .eyebrow {
-      margin-bottom: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: #7ec4ff;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 2px;
+      background: var(--blue);
     }
 
     .hero h1 {
-      font-size: clamp(46px, 6vw, 78px);
-      line-height: 1.02;
-      letter-spacing: -0.045em;
-      color: var(--navy);
-      margin-bottom: 28px;
+      color: white;
+      font-size: clamp(46px,7vw,86px);
+      line-height: .98;
+      letter-spacing: -4px;
+      font-weight: 900;
+      margin-bottom: 30px;
     }
 
     .hero h1 span {
@@ -265,310 +248,320 @@
     }
 
     .hero-text {
-      max-width: 680px;
-      color: var(--muted);
-      font-size: 18px;
+      max-width: 620px;
+      color: rgba(255,255,255,.72);
+      font-size: 19px;
       line-height: 1.75;
-      margin-bottom: 34px;
+      margin-bottom: 38px;
     }
 
     .hero-actions {
       display: flex;
-      gap: 13px;
       flex-wrap: wrap;
+      gap: 14px;
     }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 0 23px;
+      border-radius: 9px;
+      font-weight: 800;
+      font-size: 14px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform .2s ease, background .2s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
+    .button-primary {
+      color: white;
+      background: var(--blue);
+      box-shadow: 0 12px 35px rgba(22,140,255,.25);
+    }
+
+    .button-primary:hover {
+      background: #329aff;
+    }
+
+    .button-secondary {
+      color: white;
+      border-color: rgba(255,255,255,.2);
+      background: rgba(255,255,255,.05);
+    }
+
+    .button-secondary:hover {
+      background: rgba(255,255,255,.1);
+    }
+
+
+    /* =====================================================
+       SOUNDWAVE
+       ===================================================== */
 
     .soundwave {
       position: absolute;
-      bottom: 42px;
       right: 7%;
+      bottom: 12%;
+      height: 80px;
       display: flex;
       align-items: center;
       gap: 5px;
-      height: 50px;
-      opacity: 0.4;
+      opacity: .65;
     }
 
     .soundwave span {
       width: 4px;
-      height: 18px;
-      border-radius: 10px;
+      border-radius: 20px;
       background: var(--blue);
-      animation: wave 1.4s ease-in-out infinite;
+      animation: wave 1.15s ease-in-out infinite alternate;
     }
 
-    .soundwave span:nth-child(2) { animation-delay: 0.1s; }
-    .soundwave span:nth-child(3) { animation-delay: 0.2s; }
-    .soundwave span:nth-child(4) { animation-delay: 0.3s; }
-    .soundwave span:nth-child(5) { animation-delay: 0.4s; }
-    .soundwave span:nth-child(6) { animation-delay: 0.5s; }
-    .soundwave span:nth-child(7) { animation-delay: 0.6s; }
-    .soundwave span:nth-child(8) { animation-delay: 0.5s; }
-    .soundwave span:nth-child(9) { animation-delay: 0.4s; }
-    .soundwave span:nth-child(10) { animation-delay: 0.3s; }
-    .soundwave span:nth-child(11) { animation-delay: 0.2s; }
-    .soundwave span:nth-child(12) { animation-delay: 0.1s; }
+    .soundwave span:nth-child(1) { height: 20px; }
+    .soundwave span:nth-child(2) { height: 45px; }
+    .soundwave span:nth-child(3) { height: 28px; }
+    .soundwave span:nth-child(4) { height: 62px; }
+    .soundwave span:nth-child(5) { height: 38px; }
+    .soundwave span:nth-child(6) { height: 72px; }
+    .soundwave span:nth-child(7) { height: 44px; }
+    .soundwave span:nth-child(8) { height: 65px; }
+    .soundwave span:nth-child(9) { height: 30px; }
+    .soundwave span:nth-child(10) { height: 52px; }
+    .soundwave span:nth-child(11) { height: 25px; }
 
     @keyframes wave {
-      0%, 100% {
-        height: 15px;
+      from {
+        transform: scaleY(.55);
+        opacity: .45;
       }
 
-      50% {
-        height: 45px;
+      to {
+        transform: scaleY(1);
+        opacity: 1;
       }
     }
 
-    /* =======================================================
+
+    /* =====================================================
        SECTIONS
-       ======================================================= */
+       ===================================================== */
 
     section {
-      padding: 105px 0;
+      padding: 110px 0;
     }
 
     .section-heading {
-      max-width: 720px;
+      max-width: 700px;
       margin-bottom: 55px;
     }
 
+    .section-label {
+      color: var(--blue-dark);
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin-bottom: 13px;
+    }
+
     .section-heading h2 {
-      color: var(--navy);
-      font-size: clamp(36px, 4vw, 54px);
-      line-height: 1.08;
-      letter-spacing: -0.035em;
-      margin: 13px 0 18px;
+      font-size: clamp(34px,5vw,55px);
+      line-height: 1.05;
+      letter-spacing: -2px;
+      font-weight: 900;
+      margin-bottom: 20px;
     }
 
     .section-heading p {
       color: var(--muted);
       font-size: 17px;
-      line-height: 1.75;
     }
 
-    /* =======================================================
+
+    /* =====================================================
        LEISTUNGEN
-       ======================================================= */
+       ===================================================== */
 
     .services {
-      background: var(--white);
+      background: var(--light);
     }
 
     .service-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4,1fr);
       gap: 18px;
     }
 
     .service-card {
-      padding: 34px;
+      background: white;
       border: 1px solid var(--border);
-      border-radius: 15px;
-      background: var(--white);
+      border-radius: var(--radius);
+      padding: 30px;
+      min-height: 245px;
       transition:
-        transform 0.25s ease,
-        box-shadow 0.25s ease,
-        border-color 0.25s ease;
+        transform .25s ease,
+        box-shadow .25s ease,
+        border-color .25s ease;
     }
 
     .service-card:hover {
-      transform: translateY(-5px);
-      border-color: rgba(18, 103, 216, 0.3);
+      transform: translateY(-7px);
       box-shadow: var(--shadow);
+      border-color: rgba(22,140,255,.25);
     }
 
     .service-icon {
-      width: 46px;
-      height: 46px;
-      border-radius: 11px;
+      width: 48px;
+      height: 48px;
+      border-radius: 13px;
+      background: #eaf5ff;
+      color: var(--blue-dark);
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #edf5ff;
-      color: var(--blue);
-      font-size: 22px;
-      margin-bottom: 25px;
+      font-size: 21px;
+      margin-bottom: 28px;
     }
 
     .service-card h3 {
-      font-size: 19px;
+      font-size: 20px;
       margin-bottom: 12px;
-      color: var(--navy);
     }
 
     .service-card p {
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.7;
     }
 
-    /* =======================================================
+
+    /* =====================================================
        ÜBER UNS
-       ======================================================= */
-
-    #ueber-uns {
-      background: var(--light);
-    }
+       ===================================================== */
 
     .about-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 90px;
+      gap: 80px;
       align-items: center;
     }
 
     .about-visual {
-      min-height: 500px;
-      border-radius: 22px;
-      background:
-        radial-gradient(
-          circle at 25% 25%,
-          rgba(18, 103, 216, 0.25),
-          transparent 34%
-        ),
-        linear-gradient(145deg, #071426, #102746);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      align-items: flex-end;
-      padding: 30px;
-    }
-
-    .about-visual::before {
-      content: "";
-      position: absolute;
-      width: 260px;
-      height: 260px;
-      border: 1px solid rgba(255,255,255,0.13);
-      border-radius: 50%;
-      right: -70px;
-      top: -70px;
-    }
-
-    .about-visual::after {
-      content: "";
-      position: absolute;
-      width: 360px;
-      height: 360px;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 50%;
-      left: -150px;
-      bottom: -150px;
-    }
-
-    .about-card {
-      position: relative;
-      z-index: 2;
       width: 100%;
-      padding: 25px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.14);
-      backdrop-filter: blur(12px);
-      color: var(--white);
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      border-radius: 25px;
+      background: var(--navy);
+      box-shadow: 0 20px 60px rgba(7,17,31,.16);
     }
 
-    .about-card strong {
+    .about-visual video {
+      width: 100%;
+      height: 100%;
       display: block;
-      font-size: 27px;
-      margin-bottom: 4px;
-    }
-
-    .about-card span {
-      color: rgba(255,255,255,0.65);
-      font-size: 14px;
+      object-fit: cover;
+      object-position: center center;
     }
 
     .about-copy h2 {
-      color: var(--navy);
-      font-size: clamp(38px, 4vw, 56px);
+      font-size: clamp(35px,5vw,55px);
       line-height: 1.05;
-      letter-spacing: -0.04em;
-      margin: 13px 0 24px;
+      letter-spacing: -2px;
+      margin-bottom: 25px;
     }
 
     .about-copy p {
       color: var(--muted);
-      margin-bottom: 17px;
-      line-height: 1.75;
+      margin-bottom: 18px;
+      font-size: 16px;
     }
 
     .about-points {
       list-style: none;
-      margin-top: 28px;
       display: grid;
       gap: 13px;
+      margin-top: 30px;
     }
 
     .about-points li {
       display: flex;
-      align-items: center;
       gap: 12px;
-      color: var(--text);
-      font-weight: 600;
+      align-items: flex-start;
+      font-weight: 700;
       font-size: 14px;
     }
 
     .about-points li::before {
       content: "✓";
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #eaf3ff;
-      color: var(--blue);
+      width: 23px;
+      height: 23px;
+      flex: 0 0 23px;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      background: #eaf5ff;
+      color: var(--blue-dark);
+      border-radius: 50%;
       font-size: 12px;
-      font-weight: 800;
-      flex-shrink: 0;
     }
 
-    /* =======================================================
+
+    /* =====================================================
        ABLAUF
-       ======================================================= */
+       ===================================================== */
 
     .process {
-      background: var(--white);
+      background: var(--navy);
+      color: white;
+    }
+
+    .process .section-label {
+      color: #7ec4ff;
+    }
+
+    .process .section-heading p {
+      color: rgba(255,255,255,.62);
     }
 
     .process-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 18px;
+      grid-template-columns: repeat(4,1fr);
+      gap: 20px;
     }
 
     .process-card {
-      padding: 32px;
-      border-top: 2px solid var(--blue);
-      background: var(--light);
-      border-radius: 0 0 13px 13px;
+      padding: 30px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 17px;
+      background: rgba(255,255,255,.035);
     }
 
     .process-number {
       color: var(--blue);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      margin-bottom: 24px;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin-bottom: 50px;
     }
 
     .process-card h3 {
-      color: var(--navy);
-      font-size: 18px;
-      line-height: 1.4;
-      margin-bottom: 13px;
+      font-size: 21px;
+      margin-bottom: 12px;
     }
 
     .process-card p {
-      color: var(--muted);
+      color: rgba(255,255,255,.6);
       font-size: 14px;
-      line-height: 1.7;
     }
 
-    /* =======================================================
+
+    /* =====================================================
        TECHNIK
-       ======================================================= */
+       ===================================================== */
 
     .equipment {
       background: var(--light);
@@ -577,156 +570,300 @@
     .equipment-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
+      gap: 18px;
     }
 
     .equipment-item {
-      display: flex;
-      gap: 20px;
-      align-items: flex-start;
-      padding: 27px;
-      background: var(--white);
+      padding: 28px;
+      border-radius: 17px;
+      background: white;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
 
     .equipment-item-icon {
-      width: 46px;
-      height: 46px;
-      border-radius: 10px;
-      background: #edf5ff;
-      color: var(--blue);
+      width: 52px;
+      height: 52px;
+      flex: 0 0 52px;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      font-size: 20px;
+      background: #eaf5ff;
+      border-radius: 14px;
+      font-size: 22px;
     }
 
     .equipment-item h3 {
-      color: var(--navy);
       font-size: 17px;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
 
     .equipment-item p {
       color: var(--muted);
-      font-size: 14px;
+      font-size: 13px;
     }
 
-    /* =======================================================
+
+    /* =====================================================
        GALERIE
-       ======================================================= */
-
-    #galerie {
-      background: var(--white);
-    }
+       ===================================================== */
 
     .gallery-grid {
       display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      grid-template-rows: 250px 250px;
-      gap: 14px;
+      grid-template-columns: 1.35fr .8fr .8fr;
+      grid-template-rows: 260px 260px;
+      gap: 15px;
     }
 
     .gallery-item {
-      border-radius: 14px;
-      background:
-        linear-gradient(
-          135deg,
-          #e9f1fc,
-          #f7f9fc
-        );
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 600;
+      position: relative;
       overflow: hidden;
+      border-radius: 17px;
+      background: var(--navy);
     }
 
     .gallery-item:first-child {
-      grid-row: 1 / -1;
+      grid-row: span 2;
+    }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .6s ease;
+    }
+
+    .gallery-item:hover img {
+      transform: scale(1.04);
+    }
+
+    .gallery-item::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(
+          to top,
+          rgba(0,0,0,.15),
+          transparent 35%
+        );
     }
 
     .gallery-note {
-      margin-top: 18px;
+      margin-top: 20px;
       color: var(--muted);
       font-size: 13px;
     }
 
-    /* =======================================================
+
+    /* =====================================================
        CTA
-       ======================================================= */
+       ===================================================== */
 
     .cta {
-      padding-top: 35px;
-      padding-bottom: 105px;
+      padding: 90px 0;
     }
 
     .cta-box {
       position: relative;
       overflow: hidden;
-      border-radius: 22px;
-      padding: 65px;
+
       background:
         radial-gradient(
-          circle at 85% 15%,
-          rgba(43, 128, 240, 0.35),
-          transparent 30%
+          circle at 85% 50%,
+          rgba(22,140,255,.4),
+          transparent 32%
         ),
         var(--navy);
-      color: var(--white);
+
+      color: white;
+      border-radius: 25px;
+      padding: 70px;
     }
 
     .cta-box h2 {
-      font-size: clamp(38px, 5vw, 62px);
-      line-height: 1.02;
-      letter-spacing: -0.04em;
-      margin-bottom: 18px;
+      font-size: clamp(35px,5vw,57px);
+      letter-spacing: -2px;
+      line-height: 1.05;
+      max-width: 650px;
+      margin-bottom: 20px;
     }
 
     .cta-box p {
-      max-width: 560px;
-      color: rgba(255,255,255,0.68);
-      margin-bottom: 28px;
+      color: rgba(255,255,255,.65);
+      max-width: 590px;
+      margin-bottom: 30px;
     }
 
-    /* =======================================================
+
+    /* =====================================================
+       KONTAKT
+       ===================================================== */
+
+    .contact {
+      background: var(--light);
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 70px;
+    }
+
+    .contact-info h2 {
+      font-size: 45px;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 20px;
+    }
+
+    .contact-info > p {
+      color: var(--muted);
+      margin-bottom: 35px;
+    }
+
+    .contact-list {
+      display: grid;
+      gap: 18px;
+    }
+
+    .contact-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .contact-item-icon {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: white;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+    }
+
+    .contact-item strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .contact-item span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .contact-form {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 35px;
+      box-shadow: var(--shadow);
+    }
+
+    .form-title {
+      font-size: 23px;
+      font-weight: 900;
+      margin-bottom: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 17px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      border: 1px solid #dbe2ea;
+      background: #fbfcfd;
+      border-radius: 9px;
+      padding: 13px 14px;
+      outline: none;
+      color: var(--text);
+      transition: border .2s ease, box-shadow .2s ease;
+    }
+
+    .field textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(22,140,255,.1);
+    }
+
+    .form-submit {
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .form-hint {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+
+    /* =====================================================
        FOOTER
-       ======================================================= */
+       ===================================================== */
 
     footer {
-      background: #06111f;
-      color: var(--white);
-      padding: 70px 0 25px;
+      background: #040a12;
+      color: white;
+      padding: 65px 0 25px;
     }
 
     .footer-grid {
       display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 70px;
-      padding-bottom: 55px;
+      grid-template-columns: 1.4fr .8fr .8fr;
+      gap: 60px;
+      padding-bottom: 50px;
     }
 
     .footer-brand img {
       width: 60px;
-      height: 60px;
-      object-fit: contain;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     .footer-brand p {
-      max-width: 360px;
-      color: rgba(255,255,255,0.58);
+      max-width: 350px;
+      color: rgba(255,255,255,.5);
       font-size: 14px;
-      line-height: 1.7;
     }
 
     .footer-col h3 {
-      font-size: 14px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
       margin-bottom: 20px;
     }
 
@@ -737,53 +874,89 @@
     }
 
     .footer-col a {
-      color: rgba(255,255,255,0.58);
-      font-size: 14px;
-      transition: color 0.2s ease;
+      color: rgba(255,255,255,.55);
+      font-size: 13px;
+      transition: color .2s ease;
     }
 
     .footer-col a:hover {
-      color: var(--white);
+      color: white;
+    }
+
+    /* CEO-Link bewusst dezent */
+    .footer-ceo {
+      opacity: .45;
+      font-size: 11px !important;
+    }
+
+    .footer-ceo:hover {
+      opacity: 1;
+      color: var(--blue) !important;
     }
 
     .footer-bottom {
       padding-top: 22px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      border-top: 1px solid rgba(255,255,255,.08);
       display: flex;
-      align-items: center;
       justify-content: space-between;
       gap: 20px;
-      color: rgba(255,255,255,0.4);
-      font-size: 12px;
+      color: rgba(255,255,255,.35);
+      font-size: 11px;
     }
 
-    /* =======================================================
-       RESPONSIVE
-       ======================================================= */
 
-    @media (max-width: 900px) {
+    /* =====================================================
+       MOBILE
+       ===================================================== */
+
+    @media (max-width: 1000px) {
+      .service-grid,
+      .process-grid {
+        grid-template-columns: repeat(2,1fr);
+      }
+
+      .about-grid {
+        gap: 45px;
+      }
+
+      .soundwave {
+        right: 4%;
+      }
+    }
+
+    @media (max-width: 760px) {
+
+      .container {
+        width: min(
+          var(--max),
+          calc(100% - 28px)
+        );
+      }
+
+      .nav {
+        height: 72px;
+      }
+
       .nav-links {
-        position: absolute;
-        top: calc(100% + 10px);
-        left: 20px;
-        right: 20px;
         display: none;
+
+        position: absolute;
+        top: 72px;
+        left: 14px;
+        right: 14px;
+
+        background: rgba(7,17,31,.98);
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 14px;
+        padding: 18px;
+
         flex-direction: column;
         align-items: stretch;
-        gap: 0;
-        padding: 10px;
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        box-shadow: var(--shadow);
+        gap: 4px;
       }
 
       .nav-links.open {
         display: flex;
-      }
-
-      .nav-links li {
-        width: 100%;
       }
 
       .nav-links a {
@@ -791,7 +964,7 @@
         padding: 12px;
       }
 
-      .nav-links .nav-cta {
+      .nav-cta {
         text-align: center;
       }
 
@@ -799,52 +972,37 @@
         display: block;
       }
 
-      .service-grid,
-      .process-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .about-grid {
-        grid-template-columns: 1fr;
-        gap: 55px;
-      }
-
-      .about-visual {
-        min-height: 420px;
-      }
-
-      .equipment-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .footer-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    @media (max-width: 650px) {
-      .container {
-        width: min(100% - 32px, 1180px);
-      }
-
-      section {
-        padding: 80px 0;
-      }
-
-      .hero {
-        min-height: 700px;
+      .hero-content {
+        padding: 125px 0 100px;
       }
 
       .hero h1 {
-        font-size: 45px;
+        font-size: clamp(43px,14vw,68px);
+        letter-spacing: -3px;
       }
 
       .hero-text {
         font-size: 16px;
       }
 
+      .soundwave {
+        display: none;
+      }
+
+      section {
+        padding: 80px 0;
+      }
+
+      .section-heading {
+        margin-bottom: 38px;
+      }
+
       .service-grid,
-      .process-grid {
+      .process-grid,
+      .equipment-grid,
+      .about-grid,
+      .contact-grid,
+      .footer-grid {
         grid-template-columns: 1fr;
       }
 
@@ -862,17 +1020,33 @@
         padding: 42px 27px;
       }
 
+      .contact-grid {
+        gap: 40px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+
+      .contact-form {
+        padding: 24px;
+      }
+
       .footer-grid {
         gap: 35px;
       }
 
       .footer-bottom {
         flex-direction: column;
-        align-items: flex-start;
       }
     }
 
     @media (max-width: 450px) {
+
       .logo img {
         width: 45px;
         height: 45px;
@@ -894,23 +1068,27 @@
   </style>
 </head>
 
+
 <body>
 
-  <!-- =======================================================
+
+  <!-- =====================================================
        HEADER
-       ======================================================= -->
+       ===================================================== -->
 
   <header id="header">
+
     <div class="container nav">
 
       <a href="#start" class="logo">
+
         <img
           src="logo.png"
-          alt="RuhrGeBeats GbR"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='block';"
+          alt="RuhrGeBeats Logo"
         >
-        <span class="logo-fallback">RUHRGEBEATS</span>
+
       </a>
+
 
       <button
         class="mobile-toggle"
@@ -920,68 +1098,125 @@
         ☰
       </button>
 
-      <ul class="nav-links" id="navLinks">
-        <li><a href="#leistungen">Leistungen</a></li>
-        <li><a href="#ueber-uns">Über uns</a></li>
-        <li><a href="#ablauf">Ablauf</a></li>
-        <li><a href="#technik">Technik</a></li>
-        <li><a href="#galerie">Galerie</a></li>
+
+      <ul
+        class="nav-links"
+        id="navLinks"
+      >
+
         <li>
-          <a class="nav-cta" href="/anfrage">
+          <a href="#leistungen">
+            Leistungen
+          </a>
+        </li>
+
+        <li>
+          <a href="#ueber-uns">
+            Über uns
+          </a>
+        </li>
+
+        <li>
+          <a href="#ablauf">
+            Ablauf
+          </a>
+        </li>
+
+        <li>
+          <a href="#technik">
+            Technik
+          </a>
+        </li>
+
+        <li>
+          <a href="#galerie">
+            Galerie
+          </a>
+        </li>
+
+        <li>
+          <a
+            class="nav-cta"
+            href="/anfrage"
+          >
             Anfrage
           </a>
         </li>
+
       </ul>
 
     </div>
+
   </header>
 
 
-  <!-- =======================================================
+
+  <!-- =====================================================
        HERO
-       ======================================================= -->
+       ===================================================== -->
 
   <main>
 
-    <section class="hero" id="start">
+    <section
+      class="hero"
+      id="start"
+    >
 
       <div class="hero-glow"></div>
 
+
       <div class="container">
+
         <div class="hero-content">
 
           <div class="eyebrow">
             DJ & Veranstaltungstechnik
           </div>
 
+
           <h1>
             Musik, die verbindet.<br>
             <span>Momente, die bleiben.</span>
           </h1>
 
+
           <p class="hero-text">
-            RuhrGeBeats bringt Musik, Licht und die richtige Atmosphäre
-            auf deine Veranstaltung. Persönlich geplant, professionell
-            umgesetzt und mit dem Anspruch, dass dein Abend genau so wird,
-            wie du ihn dir vorstellst.
+            RuhrGeBeats bringt Musik, Licht und die richtige
+            Atmosphäre auf deine Veranstaltung. Persönlich geplant,
+            professionell umgesetzt und mit dem Anspruch, dass dein
+            Abend genau so wird, wie du ihn dir vorstellst.
           </p>
+
 
           <div class="hero-actions">
 
-            <a class="button button-primary" href="/anfrage">
+            <a
+              class="button button-primary"
+              href="/anfrage"
+            >
               Jetzt unverbindlich anfragen
             </a>
 
-            <a class="button button-secondary" href="#leistungen">
+
+            <a
+              class="button button-secondary"
+              href="#leistungen"
+            >
               Leistungen entdecken
             </a>
 
           </div>
 
         </div>
+
       </div>
 
-      <div class="soundwave" aria-hidden="true">
+
+      <div
+        class="soundwave"
+        aria-hidden="true"
+      >
+
         <span></span>
         <span></span>
         <span></span>
@@ -993,17 +1228,21 @@
         <span></span>
         <span></span>
         <span></span>
-        <span></span>
+
       </div>
 
     </section>
+
 
 
     <!-- =====================================================
          LEISTUNGEN
          ===================================================== -->
 
-    <section class="services" id="leistungen">
+    <section
+      class="services"
+      id="leistungen"
+    >
 
       <div class="container">
 
@@ -1018,8 +1257,9 @@
           </h2>
 
           <p>
-            Von der Musik bis zur Beleuchtung kümmern wir uns um die
-            technische und musikalische Grundlage für einen gelungenen Abend.
+            Von der Musik bis zur Beleuchtung kümmern wir uns
+            um die technische und musikalische Grundlage
+            für einen gelungenen Abend.
           </p>
 
         </div>
@@ -1027,15 +1267,21 @@
 
         <div class="service-grid">
 
+
           <article class="service-card">
 
-            <div class="service-icon">♫</div>
+            <div class="service-icon">
+              ♫
+            </div>
 
-            <h3>DJ-Service</h3>
+            <h3>
+              DJ-Service
+            </h3>
 
             <p>
-              Die passende Musik für den gesamten Abend – abgestimmt
-              auf euch, eure Gäste und den Charakter eurer Veranstaltung.
+              Die passende Musik für den gesamten Abend –
+              abgestimmt auf euch, eure Gäste und den Charakter
+              eurer Veranstaltung.
             </p>
 
           </article>
@@ -1043,13 +1289,17 @@
 
           <article class="service-card">
 
-            <div class="service-icon">◉</div>
+            <div class="service-icon">
+              ◉
+            </div>
 
-            <h3>Musikanlage</h3>
+            <h3>
+              Musikanlage
+            </h3>
 
             <p>
-              Leistungsfähige Beschallung für deine
-              Veranstaltung – sauber abgestimmt und professionell aufgebaut.
+              Leistungsfähige Beschallung für deine Veranstaltung –
+              sauber abgestimmt und professionell aufgebaut.
             </p>
 
           </article>
@@ -1057,13 +1307,18 @@
 
           <article class="service-card">
 
-            <div class="service-icon">✦</div>
+            <div class="service-icon">
+              ✦
+            </div>
 
-            <h3>Lichttechnik</h3>
+            <h3>
+              Lichttechnik
+            </h3>
 
             <p>
-              Moving Heads, Lichtbars und weitere Effekte sorgen dafür,
-              dass nicht nur die Musik, sondern auch der Raum wirkt.
+              Moving Heads, Lichtbars und weitere Effekte sorgen
+              dafür, dass nicht nur die Musik, sondern auch
+              der Raum wirkt.
             </p>
 
           </article>
@@ -1071,22 +1326,29 @@
 
           <article class="service-card">
 
-            <div class="service-icon">◌</div>
+            <div class="service-icon">
+              ◌
+            </div>
 
-            <h3>Individuelle Planung</h3>
+            <h3>
+              Individuelle Planung
+            </h3>
 
             <p>
-              Jede Veranstaltung ist anders. Deshalb sprechen wir vorher
-              genau ab, was ihr braucht und was vor Ort möglich ist.
+              Jede Veranstaltung ist anders. Deshalb sprechen
+              wir vorher genau ab, was ihr braucht und was
+              vor Ort möglich ist.
             </p>
 
           </article>
+
 
         </div>
 
       </div>
 
     </section>
+
 
 
     <!-- =====================================================
@@ -1099,17 +1361,26 @@
 
         <div class="about-grid">
 
+
           <div class="about-visual">
 
-            <div class="about-card">
+            <video
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              aria-label="RuhrGeBeats bei einer Veranstaltung"
+            >
 
-              <strong>RuhrGeBeats</strong>
+              <source
+                src="video-01.mp4"
+                type="video/mp4"
+              >
 
-              <span>
-                DJ-Team aus dem Ruhrgebiet
-              </span>
+              Dein Browser unterstützt dieses Videoformat nicht.
 
-            </div>
+            </video>
 
           </div>
 
@@ -1120,23 +1391,29 @@
               Über uns
             </div>
 
+
             <h2>
               Zwei DJs.<br>
               Eine Leidenschaft.
             </h2>
 
-            <p>
-              Hinter RuhrGeBeats stehen Lenny und Tom.
-              Gemeinsam haben wir uns zum Ziel gesetzt, Veranstaltungen
-              musikalisch und technisch zuverlässig zu begleiten.
-            </p>
 
             <p>
-              Dabei geht es für uns nicht darum, einfach eine Playlist
-              abzuspielen. Wir wollen auf den Abend reagieren, die Stimmung
-              aufnehmen und gemeinsam mit euch eine Veranstaltung gestalten,
+              Hinter RuhrGeBeats stehen Lenny und Tom.
+              Gemeinsam haben wir uns zum Ziel gesetzt,
+              Veranstaltungen musikalisch und technisch
+              zuverlässig zu begleiten.
+            </p>
+
+
+            <p>
+              Dabei geht es für uns nicht darum, einfach
+              eine Playlist abzuspielen. Wir wollen auf den
+              Abend reagieren, die Stimmung aufnehmen und
+              gemeinsam mit euch eine Veranstaltung gestalten,
               an die man sich gerne erinnert.
             </p>
+
 
             <ul class="about-points">
 
@@ -1167,11 +1444,15 @@
     </section>
 
 
+
     <!-- =====================================================
          ABLAUF
          ===================================================== -->
 
-    <section class="process" id="ablauf">
+    <section
+      class="process"
+      id="ablauf"
+    >
 
       <div class="container">
 
@@ -1187,14 +1468,15 @@
           </h2>
 
           <p>
-            Wir halten die Planung unkompliziert und sprechen alles
-            Wichtige rechtzeitig mit euch ab.
+            Wir halten die Planung unkompliziert und sprechen
+            alles Wichtige rechtzeitig mit euch ab.
           </p>
 
         </div>
 
 
         <div class="process-grid">
+
 
           <article class="process-card">
 
@@ -1208,7 +1490,8 @@
 
             <p>
               Datum, Location, Gäste und eure Vorstellungen –
-              damit wir direkt einschätzen können, was ihr benötigt.
+              damit wir direkt einschätzen können,
+              was ihr benötigt.
             </p>
 
           </article>
@@ -1225,8 +1508,8 @@
             </h3>
 
             <p>
-              Musik, Technik, Ablauf und besondere Wünsche werden
-              gemeinsam abgestimmt.
+              Musik, Technik, Ablauf und besondere Wünsche
+              werden gemeinsam abgestimmt.
             </p>
 
           </article>
@@ -1261,11 +1544,12 @@
             </h3>
 
             <p>
-              Musik, Übergänge und Licht laufen – während ihr euch
-              auf eure Gäste und euren Abend konzentrieren könnt.
+              Musik, Übergänge und Licht laufen – während ihr
+              euch auf eure Gäste und euren Abend konzentrieren könnt.
             </p>
 
           </article>
+
 
         </div>
 
@@ -1274,11 +1558,15 @@
     </section>
 
 
+
     <!-- =====================================================
          TECHNIK
          ===================================================== -->
 
-    <section class="equipment" id="technik">
+    <section
+      class="equipment"
+      id="technik"
+    >
 
       <div class="container">
 
@@ -1295,14 +1583,15 @@
 
           <p>
             Unsere Technik wird passend zur Veranstaltung geplant.
-            Dadurch bleibt das Setup flexibel und kann je nach Größe
-            und Anforderungen angepasst werden.
+            Dadurch bleibt das Setup flexibel und kann je nach
+            Größe und Anforderungen angepasst werden.
           </p>
 
         </div>
 
 
         <div class="equipment-grid">
+
 
           <div class="equipment-item">
 
@@ -1312,10 +1601,13 @@
 
             <div>
 
-              <h3>DJ-Setup</h3>
+              <h3>
+                DJ-Setup
+              </h3>
 
               <p>
-                Professionelles DJ-Setup für einen reibungslosen Abend.
+                Professionelles DJ-Setup für einen
+                reibungslosen Abend.
               </p>
 
             </div>
@@ -1331,10 +1623,13 @@
 
             <div>
 
-              <h3>Beschallung</h3>
+              <h3>
+                Beschallung
+              </h3>
 
               <p>
-                Musikanlage passend zur Größe eurer Veranstaltung.
+                Musikanlage passend zur Größe
+                eurer Veranstaltung.
               </p>
 
             </div>
@@ -1350,10 +1645,13 @@
 
             <div>
 
-              <h3>Moving Heads</h3>
+              <h3>
+                Moving Heads
+              </h3>
 
               <p>
-                Dynamische Lichteffekte für Tanzfläche und Raum.
+                Dynamische Lichteffekte für
+                Tanzfläche und Raum.
               </p>
 
             </div>
@@ -1369,21 +1667,26 @@
 
             <div>
 
-              <h3>Lichtbars & Spots</h3>
+              <h3>
+                Lichtbars & Spots
+              </h3>
 
               <p>
-                Zusätzliche Ambientebeleuchtung und Effekte.
+                Zusätzliche Ambientebeleuchtung
+                und Effekte.
               </p>
 
             </div>
 
           </div>
 
+
         </div>
 
       </div>
 
     </section>
+
 
 
     <!-- =====================================================
@@ -1401,11 +1704,13 @@
           </div>
 
           <h2>
+            Eindrücke von unseren Events.
           </h2>
 
           <p>
-            Hier entsteht nach und nach unsere Galerie mit Eindrücken
-            von vergangenen Veranstaltungen.
+            Einblicke in unsere Veranstaltungen, unser Setup
+            und die Atmosphäre, die RuhrGeBeats auf die
+            Tanzfläche bringt.
           </p>
 
         </div>
@@ -1413,36 +1718,73 @@
 
         <div class="gallery-grid">
 
-          <div class="gallery-item">
-            Erstes Eventfoto
-          </div>
 
           <div class="gallery-item">
-            Event
+
+            <img
+              src="foto01.jpg"
+              alt="RuhrGeBeats bei einer Veranstaltung"
+              loading="lazy"
+            >
+
           </div>
 
-          <div class="gallery-item">
-            Lichttechnik
-          </div>
 
           <div class="gallery-item">
-            DJ-Setup
+
+            <img
+              src="foto02.jpg"
+              alt="RuhrGeBeats DJ bei einem Event"
+              loading="lazy"
+            >
+
           </div>
 
+
           <div class="gallery-item">
-            Party
+
+            <img
+              src="foto03.jpg"
+              alt="RuhrGeBeats Lichttechnik"
+              loading="lazy"
+            >
+
           </div>
+
+
+          <div class="gallery-item">
+
+            <img
+              src="foto04.jpg"
+              alt="RuhrGeBeats DJ-Setup"
+              loading="lazy"
+            >
+
+          </div>
+
+
+          <div class="gallery-item">
+
+            <img
+              src="foto05.jpg"
+              alt="RuhrGeBeats Veranstaltung"
+              loading="lazy"
+            >
+
+          </div>
+
 
         </div>
 
 
         <p class="gallery-note">
-          Weitere Fotos werden ergänzt.
+          Weitere Eindrücke werden regelmäßig ergänzt.
         </p>
 
       </div>
 
     </section>
+
 
 
     <!-- =====================================================
@@ -1465,9 +1807,317 @@
             persönlich bei euch.
           </p>
 
-          <a class="button button-primary" href="/anfrage">
+          <a
+            class="button button-primary"
+            href="/anfrage"
+          >
             Anfrage starten
           </a>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         KONTAKT
+         ===================================================== -->
+
+    <section
+      class="contact"
+      id="kontakt"
+    >
+
+      <div class="container">
+
+        <div class="contact-grid">
+
+
+          <div class="contact-info">
+
+            <div class="section-label">
+              Kontakt
+            </div>
+
+            <h2>
+              Lasst uns<br>
+              eure Feier planen.
+            </h2>
+
+            <p>
+              Schickt uns zunächst die wichtigsten Informationen
+              zu eurer Veranstaltung. Die Anfrage ist unverbindlich.
+            </p>
+
+
+            <div class="contact-list">
+
+
+              <a
+                class="contact-item"
+                href="mailto:ruhrgebeats@gmail.com"
+              >
+
+                <div class="contact-item-icon">
+                  ✉
+                </div>
+
+                <div>
+
+                  <strong>
+                    E-Mail
+                  </strong>
+
+                  <span>
+                    ruhrgebeats@gmail.com
+                  </span>
+
+                </div>
+
+              </a>
+
+
+              <a
+                class="contact-item"
+                href="https://www.instagram.com/ruhrgebeats_gbr/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+
+                <div class="contact-item-icon">
+                  ◎
+                </div>
+
+                <div>
+
+                  <strong>
+                    Instagram
+                  </strong>
+
+                  <span>
+                    @ruhrgebeats_gbr
+                  </span>
+
+                </div>
+
+              </a>
+
+
+              <div class="contact-item">
+
+                <div class="contact-item-icon">
+                  ⌂
+                </div>
+
+                <div>
+
+                  <strong>
+                    Ruhrgebiet
+                  </strong>
+
+                  <span>
+                    Mobil für eure Veranstaltung unterwegs
+                  </span>
+
+                </div>
+
+              </div>
+
+
+            </div>
+
+          </div>
+
+
+
+          <form
+            class="contact-form"
+            action="mailto:ruhrgebeats@gmail.com"
+            method="post"
+            enctype="text/plain"
+          >
+
+            <div class="form-title">
+              Unverbindliche Anfrage
+            </div>
+
+
+            <div class="form-grid">
+
+
+              <div class="field">
+
+                <label for="name">
+                  Name *
+                </label>
+
+                <input
+                  id="name"
+                  name="Name"
+                  type="text"
+                  required
+                  placeholder="Vor- und Nachname"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="email">
+                  E-Mail *
+                </label>
+
+                <input
+                  id="email"
+                  name="E-Mail"
+                  type="email"
+                  required
+                  placeholder="name@beispiel.de"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="phone">
+                  Telefon
+                </label>
+
+                <input
+                  id="phone"
+                  name="Telefon"
+                  type="tel"
+                  placeholder="Telefonnummer"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="eventType">
+                  Veranstaltung
+                </label>
+
+                <select
+                  id="eventType"
+                  name="Veranstaltung"
+                >
+
+                  <option value="">
+                    Bitte auswählen
+                  </option>
+
+                  <option>
+                    Geburtstag
+                  </option>
+
+                  <option>
+                    Hochzeit
+                  </option>
+
+                  <option>
+                    Private Feier
+                  </option>
+
+                  <option>
+                    Firmenfeier
+                  </option>
+
+                  <option>
+                    Sonstige Veranstaltung
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="date">
+                  Veranstaltungsdatum
+                </label>
+
+                <input
+                  id="date"
+                  name="Veranstaltungsdatum"
+                  type="date"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="guests">
+                  Anzahl Gäste
+                </label>
+
+                <input
+                  id="guests"
+                  name="Gäste"
+                  type="number"
+                  min="1"
+                  placeholder="ca. 100"
+                >
+
+              </div>
+
+
+              <div class="field full">
+
+                <label for="location">
+                  Veranstaltungsort
+                </label>
+
+                <input
+                  id="location"
+                  name="Veranstaltungsort"
+                  type="text"
+                  placeholder="Location / Ort"
+                >
+
+              </div>
+
+
+              <div class="field full">
+
+                <label for="message">
+                  Erzählt uns von eurem Event
+                </label>
+
+                <textarea
+                  id="message"
+                  name="Nachricht"
+                  placeholder="Was habt ihr geplant? Welche Musik mögt ihr? Gibt es besondere Wünsche?"
+                ></textarea>
+
+              </div>
+
+
+            </div>
+
+
+            <button
+              class="button button-primary form-submit"
+              type="submit"
+            >
+              Anfrage per E-Mail senden
+            </button>
+
+
+            <div class="form-hint">
+              Mit dem Absenden wird dein E-Mail-Programm geöffnet.
+            </div>
+
+          </form>
+
 
         </div>
 
@@ -1478,9 +2128,10 @@
   </main>
 
 
-  <!-- =======================================================
+
+  <!-- =====================================================
        FOOTER
-       ======================================================= -->
+       ===================================================== -->
 
   <footer>
 
@@ -1488,12 +2139,12 @@
 
       <div class="footer-grid">
 
+
         <div class="footer-brand">
 
           <img
             src="logo.png"
-            alt="RuhrGeBeats GbR"
-            onerror="this.style.display='none';"
+            alt="RuhrGeBeats"
           >
 
           <p>
@@ -1506,36 +2157,40 @@
 
         <div class="footer-col">
 
-          <h3>Navigation</h3>
+          <h3>
+            Navigation
+          </h3>
 
           <ul>
 
             <li>
-              <a href="#start">Start</a>
+              <a href="#start">
+                Start
+              </a>
             </li>
 
             <li>
-              <a href="#leistungen">Leistungen</a>
+              <a href="#leistungen">
+                Leistungen
+              </a>
             </li>
 
             <li>
-              <a href="#ueber-uns">Über uns</a>
+              <a href="#ueber-uns">
+                Über uns
+              </a>
             </li>
 
             <li>
-              <a href="#ablauf">Ablauf</a>
+              <a href="#galerie">
+                Galerie
+              </a>
             </li>
 
             <li>
-              <a href="#technik">Technik</a>
-            </li>
-
-            <li>
-              <a href="#galerie">Galerie</a>
-            </li>
-
-            <li>
-              <a href="/anfrage">Anfrage</a>
+              <a href="/anfrage">
+                Anfrage
+              </a>
             </li>
 
           </ul>
@@ -1545,9 +2200,27 @@
 
         <div class="footer-col">
 
-          <h3>Rechtliches</h3>
+          <h3>
+            Kontakt
+          </h3>
 
           <ul>
+
+            <li>
+              <a href="mailto:ruhrgebeats@gmail.com">
+                ruhrgebeats@gmail.com
+              </a>
+            </li>
+
+            <li>
+              <a
+                href="https://www.instagram.com/ruhrgebeats_gbr/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Instagram
+              </a>
+            </li>
 
             <li>
               <a href="impressum.html">
@@ -1561,9 +2234,20 @@
               </a>
             </li>
 
+            <!-- DEZENTER INTERNER ZUGANG -->
+            <li>
+              <a
+                class="footer-ceo"
+                href="/intern/"
+              >
+                CEO-Anmeldung
+              </a>
+            </li>
+
           </ul>
 
         </div>
+
 
       </div>
 
@@ -1575,7 +2259,7 @@
         </span>
 
         <span>
-          Musik, die verbindet. Für Momente, die bleiben.
+          DJ & Veranstaltungstechnik im Ruhrgebiet
         </span>
 
       </div>
@@ -1585,19 +2269,21 @@
   </footer>
 
 
-  <!-- =======================================================
+
+  <!-- =====================================================
        JAVASCRIPT
-       ======================================================= -->
+       ===================================================== -->
 
   <script>
 
     /* Header beim Scrollen */
 
-    const header = document.getElementById("header");
+    const header =
+      document.getElementById("header");
 
     window.addEventListener("scroll", () => {
 
-      if (window.scrollY > 25) {
+      if (window.scrollY > 30) {
         header.classList.add("scrolled");
       } else {
         header.classList.remove("scrolled");
@@ -1606,13 +2292,14 @@
     });
 
 
-    /* Mobile Navigation */
+    /* Mobile Menü */
 
     const mobileToggle =
       document.getElementById("mobileToggle");
 
     const navLinks =
       document.getElementById("navLinks");
+
 
     mobileToggle.addEventListener("click", () => {
 
@@ -1623,21 +2310,65 @@
 
     /* Mobile Menü nach Klick schließen */
 
-    document.querySelectorAll(".nav-links a").forEach(link => {
+    document
+      .querySelectorAll(".nav-links a")
+      .forEach(link => {
 
-      link.addEventListener("click", () => {
+        link.addEventListener("click", () => {
 
-        navLinks.classList.remove("open");
+          navLinks.classList.remove("open");
+
+        });
 
       });
 
-    });
 
-
-    /* Jahr automatisch */
+    /* Aktuelles Jahr */
 
     document.getElementById("year").textContent =
       new Date().getFullYear();
+
+
+    /* Video automatisch starten */
+
+    const aboutVideo =
+      document.querySelector(".about-visual video");
+
+
+    if (aboutVideo) {
+
+      aboutVideo.muted = true;
+      aboutVideo.loop = true;
+      aboutVideo.playsInline = true;
+
+
+      const startVideo = () => {
+
+        aboutVideo
+          .play()
+          .catch(() => {});
+
+      };
+
+
+      startVideo();
+
+
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+
+          if (
+            !document.hidden &&
+            aboutVideo.paused
+          ) {
+            startVideo();
+          }
+
+        }
+      );
+
+    }
 
   </script>
 
